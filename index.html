@@ -20,11 +20,11 @@
   /* layout: a paper planner — sticky time axis left, seven day columns Sat→Fri; solid blocks = what happened, dashed = booked ahead */
   --paper:#f4f6f9; --sheet:#ffffff; --ink:#1c2230; --muted:#687083; --rule:#eceef3; --rule-strong:#d7dbe3;
   --accent:#2c4aa8; --accent-soft:#e6ebf8; --now:#e0442f; --weekend:#f6f7fc;
-  --study:#2d62d3; --study-bg:#e3ebfc; --study-ink:#163b86;
-  --phd:#7b4fc9;   --phd-bg:#eee6fb;   --phd-ink:#43237d;
-  --job:#cf731b;   --job-bg:#fcecd9;   --job-ink:#713a05;
-  --life:#2b9459;  --life-bg:#dff2e6;  --life-ink:#155a33;
-  --relax:#cf4a83; --relax-bg:#fbe3ee; --relax-ink:#7e1f49;
+  --study:#2a78d6; --study-bg:#e1ecfa; --study-ink:#134a8c;
+  --phd:#eb6834;   --phd-bg:#fde7dd;   --phd-ink:#8a3110;
+  --job:#1baf7a;   --job-bg:#dcf4ea;   --job-ink:#0c5c3f;
+  --life:#eda100;  --life-bg:#fdf0cf;  --life-ink:#6e4a00;
+  --relax:#e87ba4; --relax-bg:#fbe5ee; --relax-ink:#8a2550;
   --none:#6b7180;  --none-bg:#eceef2;  --none-ink:#3a3f4a;
   --shadow:0 6px 24px rgba(20,30,60,.14);
   --font-body:"Noto Sans SC",-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
@@ -36,11 +36,11 @@
   :root:not([data-theme="light"]){
     --paper:#12151c; --sheet:#181c25; --ink:#e7eaf1; --muted:#9097a8; --rule:#232835; --rule-strong:#313849;
     --accent:#8ea8ff; --accent-soft:#232c48; --now:#ff6a55; --weekend:#1b2030;
-    --study:#6e97ff; --study-bg:#1f2a47; --study-ink:#d3e0ff;
-    --phd:#b08cff;   --phd-bg:#2c2446;   --phd-ink:#e6dbff;
-    --job:#ffa24d;   --job-bg:#3a2a1a;   --job-ink:#ffe1c4;
-    --life:#4cc483;  --life-bg:#1b3328;  --life-ink:#c9f0d9;
-    --relax:#ff7fb4; --relax-bg:#3b2131; --relax-ink:#ffd6e7;
+    --study:#3987e5; --study-bg:#1c2a44; --study-ink:#d4e4fb;
+    --phd:#d95926;   --phd-bg:#3a2219;   --phd-ink:#ffd9c7;
+    --job:#199e70;   --job-bg:#15322a;   --job-ink:#c4f0de;
+    --life:#c98500;  --life-bg:#352a12;  --life-ink:#fbe6b4;
+    --relax:#d55181; --relax-bg:#3a1f2b; --relax-ink:#ffd3e4;
     --none:#9aa1b0;  --none-bg:#262b36;  --none-ink:#dde1e9;
     --shadow:0 8px 28px rgba(0,0,0,.5);
     color-scheme:dark;
@@ -49,11 +49,11 @@
 :root[data-theme="dark"]{
   --paper:#12151c; --sheet:#181c25; --ink:#e7eaf1; --muted:#9097a8; --rule:#232835; --rule-strong:#313849;
   --accent:#8ea8ff; --accent-soft:#232c48; --now:#ff6a55; --weekend:#1b2030;
-  --study:#6e97ff; --study-bg:#1f2a47; --study-ink:#d3e0ff;
-  --phd:#b08cff;   --phd-bg:#2c2446;   --phd-ink:#e6dbff;
-  --job:#ffa24d;   --job-bg:#3a2a1a;   --job-ink:#ffe1c4;
-  --life:#4cc483;  --life-bg:#1b3328;  --life-ink:#c9f0d9;
-  --relax:#ff7fb4; --relax-bg:#3b2131; --relax-ink:#ffd6e7;
+  --study:#3987e5; --study-bg:#1c2a44; --study-ink:#d4e4fb;
+  --phd:#d95926;   --phd-bg:#3a2219;   --phd-ink:#ffd9c7;
+  --job:#199e70;   --job-bg:#15322a;   --job-ink:#c4f0de;
+  --life:#c98500;  --life-bg:#352a12;  --life-ink:#fbe6b4;
+  --relax:#d55181; --relax-bg:#3a1f2b; --relax-ink:#ffd3e4;
   --none:#9aa1b0;  --none-bg:#262b36;  --none-ink:#dde1e9;
   --shadow:0 8px 28px rgba(0,0,0,.5);
   color-scheme:dark;
@@ -84,7 +84,7 @@ button{cursor:pointer}
 .btn.icon{padding:5px 9px;min-width:32px}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn.primary:hover{filter:brightness(1.08)}
-.btn.danger{color:var(--relax);border-color:color-mix(in srgb,var(--relax) 40%,transparent)}
+.btn.danger{color:var(--now);border-color:color-mix(in srgb,var(--now) 40%,transparent)}
 .btn.wide{width:100%;padding:9px 12px}
 .btn-group{display:inline-flex}
 .btn-group .btn{border-radius:0;margin-left:-1px}
@@ -94,7 +94,7 @@ button{cursor:pointer}
 .sync i{width:8px;height:8px;border-radius:50%;background:var(--none);display:inline-block}
 .sync[data-s="ok"] i{background:var(--life)}
 .sync[data-s="saving"] i{background:#e0a020}
-.sync[data-s="err"] i,.sync[data-s="local"] i{background:var(--relax)}
+.sync[data-s="err"] i,.sync[data-s="local"] i{background:var(--now)}
 
 .seg{display:inline-flex;border:1px solid var(--rule-strong);border-radius:999px;padding:2px;background:var(--paper);flex:none}
 .seg button{border:0;background:transparent;border-radius:999px;padding:3px 11px;font-size:13px;color:var(--muted);white-space:nowrap}
@@ -195,7 +195,7 @@ body.dragging{cursor:grabbing;user-select:none;-webkit-user-select:none}
 .preset-row{display:grid;grid-template-columns:1fr 66px 100px 30px;gap:6px;align-items:center}
 .preset-row input,.preset-row select{border:1px solid var(--rule-strong);background:var(--paper);border-radius:7px;padding:6px 8px;width:100%;min-width:0}
 .hint{font-size:12px;color:var(--muted);line-height:1.55;margin:0}
-.err{font-size:13px;color:var(--relax);min-height:1em;margin:0}
+.err{font-size:13px;color:var(--now);min-height:1em;margin:0}
 hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
 .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--sheet);padding:9px 14px;border-radius:8px;font-size:13px;z-index:60;display:none;max-width:90vw}
 .toast.show{display:block}
@@ -223,7 +223,44 @@ hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
 .td-row .tt{border:0;background:transparent;text-align:left;padding:0;min-width:0;overflow-wrap:anywhere}
 .td-row.done .tt{text-decoration:line-through;color:var(--muted)}
 .td-row .dt{font-family:var(--font-mono);font-size:11px;color:var(--muted);white-space:nowrap}
-.td-row .dt.late{color:var(--relax)}
+.td-row .dt.late{color:var(--now)}
+/* ---------- time summary ---------- */
+.modal.stat{max-width:720px}
+.stat-label{font-variant-numeric:tabular-nums;min-width:150px;text-align:center}
+.hero{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.hero b{font-size:30px;font-family:var(--font-mono);font-weight:500;letter-spacing:-.02em}
+.hero span{color:var(--muted);font-size:12.5px}
+.catbars{display:flex;flex-direction:column;gap:7px}
+.cb{display:grid;grid-template-columns:76px 1fr 104px;align-items:center;gap:10px;font-size:13px}
+.cb .nm{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.cb .nm i{width:8px;height:8px;border-radius:2px;background:var(--cc)}
+.cb .track{height:12px;border-radius:0 4px 4px 0;background:transparent;position:relative}
+.cb .track i{position:absolute;left:0;top:0;bottom:0;border-radius:0 4px 4px 0;background:var(--cc);min-width:2px}
+.cb .v{font-family:var(--font-mono);font-size:12px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+.cb .v small{color:var(--muted)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:10px;height:10px;border-radius:2px;background:var(--cc)}
+.cols{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:10px;align-items:end;height:170px;padding:0 2px;border-bottom:1px solid var(--rule-strong);position:relative}
+.cols .gl{position:absolute;left:0;right:0;border-top:1px dashed var(--rule);pointer-events:none}
+.cols .gl span{position:absolute;right:0;top:-15px;font-size:10.5px;color:var(--muted);font-family:var(--font-mono);background:var(--sheet);padding-left:3px}
+.col{display:flex;flex-direction:column-reverse;gap:2px;height:100%;justify-content:flex-start;cursor:default;position:relative;z-index:1}
+.col i{display:block;background:var(--cc);width:100%;max-width:42px;margin:0 auto}
+.col i:last-child{border-radius:4px 4px 0 0}
+.col:hover i{filter:brightness(1.08)}
+.colx{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:10px;font-size:11px;color:var(--muted);text-align:center;font-family:var(--font-mono)}
+.colx b{display:block;color:var(--ink);font-weight:500}
+.brk{width:100%;border-collapse:collapse;font-size:13px}
+.brk th{text-align:left;font-weight:500;color:var(--muted);font-size:12px;padding:10px 0 4px;border-bottom:1px solid var(--rule-strong)}
+.brk td{padding:5px 0;border-bottom:1px solid var(--rule)}
+.brk td.n{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap;padding-left:12px}
+.brk .ct{display:inline-flex;align-items:center;gap:6px;font-weight:500}
+.brk .ct i{width:8px;height:8px;border-radius:2px;background:var(--cc)}
+.tip{position:fixed;z-index:70;background:var(--ink);color:var(--sheet);font-size:12px;line-height:1.5;padding:7px 10px;border-radius:7px;pointer-events:none;box-shadow:var(--shadow);font-variant-numeric:tabular-nums;max-width:220px}
+#statBody{display:flex;flex-direction:column;gap:10px}
+.stat h3{margin:14px 0 0;font-size:13px;color:var(--muted);font-weight:500}
+.stat .legend{margin-bottom:12px}
+@media (max-width:520px){ .cb{grid-template-columns:68px 1fr 92px} .cols,.colx{gap:5px} }
 @media (max-width:520px){
   .drawer{top:auto;height:82%;width:100%;border-radius:16px 16px 0 0;transform:translateY(105%)}
   .drawer.open{transform:none}
@@ -267,6 +304,7 @@ hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
     <div class="summary" id="summary"></div>
     <span class="banner" id="banner" hidden></span>
     <div class="spacer"></div>
+    <button class="btn" id="statBtn" type="button">统计</button>
     <button class="btn" id="todoBtn" type="button">待办<span class="badge" id="todoCount" hidden></span></button>
     <div id="pomoBox"></div>
   </div>
@@ -285,6 +323,28 @@ hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
   </form>
   <div class="td-list" id="todoList"></div>
 </aside>
+
+<!-- time summary -->
+<div class="overlay" id="statOverlay">
+  <div class="modal stat" role="dialog" aria-modal="true" aria-labelledby="statTitle">
+    <div class="row">
+      <h2 id="statTitle">时间统计</h2>
+      <div class="seg" role="group" aria-label="统计范围">
+        <button type="button" data-sm="week" aria-pressed="true">按周</button>
+        <button type="button" data-sm="month" aria-pressed="false">按月</button>
+      </div>
+      <div class="spacer"></div>
+      <button type="button" class="btn icon" id="statClose" aria-label="关闭统计">✕</button>
+    </div>
+    <div class="row">
+      <button type="button" class="btn icon" id="statPrev" aria-label="上一个">‹</button>
+      <strong id="statLabel" class="stat-label"></strong>
+      <button type="button" class="btn icon" id="statNext" aria-label="下一个">›</button>
+    </div>
+    <div id="statBody"><p class="hint">载入中…</p></div>
+  </div>
+</div>
+<div class="tip" id="tip" role="tooltip" hidden></div>
 
 <!-- to-do editor -->
 <div class="overlay" id="tdOverlay">
@@ -1054,8 +1114,8 @@ $("presets").addEventListener("click", e=>{
 });
 document.addEventListener("keydown", e=>{
   if (e.key === "Escape"){
-    for (const id of ["askOverlay","evOverlay","tdOverlay","pomoOverlay","setOverlay"]) {
-      if ($(id).classList.contains("show")) { if (id==="askOverlay") $("askNo").click(); else if (id==="evOverlay") closeEditor(); else if (id==="tdOverlay") closeTodoEditor(); else $(id).classList.remove("show"); return; }
+    for (const id of ["askOverlay","evOverlay","tdOverlay","pomoOverlay","setOverlay","statOverlay"]) {
+      if ($(id).classList.contains("show")) { if (id==="askOverlay") $("askNo").click(); else if (id==="evOverlay") closeEditor(); else if (id==="tdOverlay") closeTodoEditor(); else if (id==="statOverlay") closeStats(); else $(id).classList.remove("show"); return; }
     }
     if ($("todoDrawer").classList.contains("open")) { closeTodos(); return; }
     if (armed !== null) { armed = null; renderTop(); }
@@ -1264,6 +1324,100 @@ $("teSchedule").onclick = ()=>{
   if (wk.getTime() === weekStart.getTime()) place();
   else { afterLoad = place; gotoWeek(wk); }
 };
+
+// ---------- time summary (week / month) ----------
+// Counts solid blocks only: direct records + completed plans. A block counts on the day column it sits in.
+let statMode = "week", statAnchor = null, statSeq = 0;
+const STAT_CATS = [...CAT_ORDER, "none"];
+async function weekEventsFor(sat){
+  if (sat.getTime() === weekStart.getTime()) return events;
+  return (await readWeek(weekKey(sat))) || null;
+}
+function statRange(){
+  if (statMode === "week") { const s = satOf(statAnchor); return {start:s, end:addDays(s,6)}; }
+  const s = new Date(statAnchor.getFullYear(), statAnchor.getMonth(), 1);
+  return {start:s, end:new Date(s.getFullYear(), s.getMonth()+1, 0)};
+}
+async function renderStats(){
+  const seq = ++statSeq, {start, end} = statRange();
+  const md = d => `${d.getMonth()+1}/${d.getDate()}`;
+  $("statLabel").textContent = statMode === "week" ? `${md(start)} – ${md(end)}` : `${start.getFullYear()} 年 ${start.getMonth()+1} 月`;
+  document.querySelectorAll("#statOverlay [data-sm]").forEach(b=>b.setAttribute("aria-pressed", b.dataset.sm===statMode));
+  // buckets: days for a week, Sat-start weeks (clipped to the month) for a month
+  const buckets = [];
+  if (statMode === "week") for (let i=0;i<7;i++){ const d = addDays(start,i); buckets.push({from:d, to:d, label:DOW[d.getDay()].slice(1), sub:md(d)}); }
+  else for (let w = satOf(start); w <= end; w = addDays(w,7)) { const f = w < start ? start : w, t = addDays(w,6) > end ? end : addDays(w,6); buckets.push({from:f, to:t, label:md(f), sub:"–"+md(t)}); }
+  buckets.forEach(b => b.mins = {});
+  const total = {}, byTitle = {};
+  let missing = 0;
+  for (let w = satOf(start); w <= end; w = addDays(w,7)) {
+    const list = await weekEventsFor(w);
+    if (seq !== statSeq) return;
+    if (list === null) { missing++; continue; }
+    for (const e of list) {
+      if (!counts(e)) continue;
+      const day = addDays(w, e.d); if (day < start || day > end) continue;
+      const c = CATS[e.cat] ? e.cat : "none";
+      total[c] = (total[c]||0) + e.len;
+      const b = buckets.find(b => day >= b.from && day <= b.to); if (b) b.mins[c] = (b.mins[c]||0) + e.len;
+      const key = c + "|" + ((e.title||"").trim() || catName(e.cat));
+      byTitle[key] = (byTitle[key]||0) + e.len;
+    }
+  }
+  const sum = STAT_CATS.reduce((a,c)=>a+(total[c]||0),0);
+  const nm = c => c === "none" ? "未定" : CATS[c];
+  if (!sum) { $("statBody").innerHTML = `<p class="hint">${missing ? "读不到这段时间的数据，检查网络后再试。" : "这段时间还没有实线记录。提前安排要打勾完成后才会算进来。"}</p>`; return; }
+  const maxCat = Math.max(...STAT_CATS.map(c=>total[c]||0));
+  const shown = STAT_CATS.filter(c => total[c]);
+  let h = `<div class="hero"><b>${hours(sum)}</b><span>小时 · 只算实线（直接记录 + 已完成的提前安排）${missing?` · 有 ${missing} 周没读到`:""}</span></div>`;
+  h += `<div class="catbars">${shown.map(c=>`<div class="cb ${kcls(c)}"><span class="nm"><i></i>${nm(c)}</span><span class="track"><i style="width:${(total[c]/maxCat*100).toFixed(1)}%"></i></span><span class="v">${hours(total[c])}h <small>${Math.round(total[c]/sum*100)}%</small></span></div>`).join("")}</div>`;
+  // stacked columns
+  const maxB = Math.max(60, ...buckets.map(b => STAT_CATS.reduce((a,c)=>a+(b.mins[c]||0),0)));
+  const stepH = [1,2,4,5,10,20,25,50].find(s => maxB/60/s <= 4) || 100;
+  const topH = Math.ceil(maxB/60/stepH)*stepH;
+  let grid = "";
+  for (let v = stepH; v <= topH; v += stepH) grid += `<div class="gl" style="bottom:${v/topH*100}%"><span>${v}h</span></div>`;
+  h += `<h3>${statMode==="week"?"每天":"每周"}</h3><div class="legend">${shown.map(c=>`<span class="${kcls(c)}"><i></i>${nm(c)}</span>`).join("")}</div>`;
+  h += `<div class="cols">${grid}${buckets.map((b,i)=>{
+      const tot = STAT_CATS.reduce((a,c)=>a+(b.mins[c]||0),0);
+      return `<div class="col" data-b="${i}" tabindex="0" aria-label="${b.label}${b.sub} 共 ${hours(tot)} 小时">${STAT_CATS.filter(c=>b.mins[c]).map(c=>`<i class="${kcls(c)}" style="height:calc(${(b.mins[c]/60/topH*100).toFixed(2)}% - 2px)"></i>`).join("")}</div>`;
+    }).join("")}</div>`;
+  h += `<div class="colx">${buckets.map(b=>{ const tot = STAT_CATS.reduce((a,c)=>a+(b.mins[c]||0),0); return `<span><b>${tot?hours(tot):"–"}</b>${b.label}${statMode==="month"?"<br>"+b.sub:""}</span>`; }).join("")}</div>`;
+  // breakdown by item within each category (also the table view of the chart)
+  h += `<h3>按项目</h3><table class="brk"><tbody>`;
+  for (const c of shown) {
+    const items = Object.entries(byTitle).filter(([k])=>k.startsWith(c+"|")).map(([k,v])=>[k.slice(c.length+1), v]).sort((a,b)=>b[1]-a[1]);
+    const top = items.slice(0,8), rest = items.slice(8).reduce((a,[,v])=>a+v,0);
+    h += `<tr><th class="${kcls(c)}"><span class="ct"><i></i>${nm(c)}</span></th><th class="n" style="text-align:right">${hours(total[c])}h</th></tr>`;
+    h += top.map(([t,v])=>`<tr><td>${esc(t)}</td><td class="n">${hours(v)}h</td></tr>`).join("");
+    if (rest) h += `<tr><td>其他 ${items.length-8} 项</td><td class="n">${hours(rest)}h</td></tr>`;
+  }
+  h += `</tbody></table>`;
+  $("statBody").innerHTML = h;
+  // hover tooltip per column
+  const tip = $("tip");
+  $("statBody").querySelectorAll(".col").forEach(col => {
+    const b = buckets[+col.dataset.b];
+    const show = ev => {
+      const tot = STAT_CATS.reduce((a,c)=>a+(b.mins[c]||0),0);
+      tip.innerHTML = `<b>${b.label}${statMode==="month"?" "+b.sub:" "+b.sub}</b> · ${hours(tot)}h<br>` + STAT_CATS.filter(c=>b.mins[c]).map(c=>`${nm(c)} ${hours(b.mins[c])}h`).join("<br>");
+      tip.hidden = false;
+      const r = col.getBoundingClientRect(), x = ev && ev.clientX ? ev.clientX : r.left + r.width/2;
+      tip.style.left = Math.min(innerWidth - tip.offsetWidth - 8, Math.max(8, x + 12)) + "px";
+      tip.style.top = Math.max(8, r.top + 8) + "px";
+    };
+    col.addEventListener("pointermove", show); col.addEventListener("focus", ()=>show());
+    col.addEventListener("pointerleave", ()=> tip.hidden = true); col.addEventListener("blur", ()=> tip.hidden = true);
+  });
+}
+function openStats(){ statAnchor = statMode === "week" ? weekStart : addDays(weekStart, 3); $("statOverlay").classList.add("show"); renderStats(); }
+const closeStats = () => { $("statOverlay").classList.remove("show"); $("tip").hidden = true; };
+$("statBtn").onclick = openStats;
+$("statClose").onclick = closeStats;
+$("statOverlay").addEventListener("pointerdown", e=>{ if (e.target === $("statOverlay")) closeStats(); });
+document.querySelectorAll("#statOverlay [data-sm]").forEach(b => b.onclick = () => { statMode = b.dataset.sm; renderStats(); });
+$("statPrev").onclick = ()=>{ statAnchor = statMode === "week" ? addDays(statAnchor,-7) : new Date(statAnchor.getFullYear(), statAnchor.getMonth()-1, 1); renderStats(); };
+$("statNext").onclick = ()=>{ statAnchor = statMode === "week" ? addDays(statAnchor,7) : new Date(statAnchor.getFullYear(), statAnchor.getMonth()+1, 1); renderStats(); };
 
 // ---------- boot ----------
 const z = lsGet("zoom"); if (ZOOMS.includes(z)) hh = z; else if (innerWidth < 520) hh = 44;
