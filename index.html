@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="周计划">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>周计划时间轴</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: a paper planner — sticky time axis left, seven day columns Sat→Fri; solid blocks = what happened, dashed = booked ahead */
+  --paper:#f4f6f9; --sheet:#ffffff; --ink:#1c2230; --muted:#687083; --rule:#eceef3; --rule-strong:#d7dbe3;
+  --accent:#2c4aa8; --accent-soft:#e6ebf8; --now:#e0442f; --weekend:#f6f7fc;
+  --study:#2d62d3; --study-bg:#e3ebfc; --study-ink:#163b86;
+  --phd:#7b4fc9;   --phd-bg:#eee6fb;   --phd-ink:#43237d;
+  --job:#cf731b;   --job-bg:#fcecd9;   --job-ink:#713a05;
+  --life:#2b9459;  --life-bg:#dff2e6;  --life-ink:#155a33;
+  --relax:#cf4a83; --relax-bg:#fbe3ee; --relax-ink:#7e1f49;
+  --none:#6b7180;  --none-bg:#eceef2;  --none-ink:#3a3f4a;
+  --shadow:0 6px 24px rgba(20,30,60,.14);
+  --font-body:"Noto Sans SC",-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --hh:52px; --axis:48px; --colmin:64px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#12151c; --sheet:#181c25; --ink:#e7eaf1; --muted:#9097a8; --rule:#232835; --rule-strong:#313849;
+    --accent:#8ea8ff; --accent-soft:#232c48; --now:#ff6a55; --weekend:#1b2030;
+    --study:#6e97ff; --study-bg:#1f2a47; --study-ink:#d3e0ff;
+    --phd:#b08cff;   --phd-bg:#2c2446;   --phd-ink:#e6dbff;
+    --job:#ffa24d;   --job-bg:#3a2a1a;   --job-ink:#ffe1c4;
+    --life:#4cc483;  --life-bg:#1b3328;  --life-ink:#c9f0d9;
+    --relax:#ff7fb4; --relax-bg:#3b2131; --relax-ink:#ffd6e7;
+    --none:#9aa1b0;  --none-bg:#262b36;  --none-ink:#dde1e9;
+    --shadow:0 8px 28px rgba(0,0,0,.5);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12151c; --sheet:#181c25; --ink:#e7eaf1; --muted:#9097a8; --rule:#232835; --rule-strong:#313849;
+  --accent:#8ea8ff; --accent-soft:#232c48; --now:#ff6a55; --weekend:#1b2030;
+  --study:#6e97ff; --study-bg:#1f2a47; --study-ink:#d3e0ff;
+  --phd:#b08cff;   --phd-bg:#2c2446;   --phd-ink:#e6dbff;
+  --job:#ffa24d;   --job-bg:#3a2a1a;   --job-ink:#ffe1c4;
+  --life:#4cc483;  --life-bg:#1b3328;  --life-ink:#c9f0d9;
+  --relax:#ff7fb4; --relax-bg:#3b2131; --relax-ink:#ffd6e7;
+  --none:#9aa1b0;  --none-bg:#262b36;  --none-ink:#dde1e9;
+  --shadow:0 8px 28px rgba(0,0,0,.5);
+  color-scheme:dark;
+}
+.k-study{--cc:var(--study);--cbg:var(--study-bg);--cink:var(--study-ink)}
+.k-phd{--cc:var(--phd);--cbg:var(--phd-bg);--cink:var(--phd-ink)}
+.k-job{--cc:var(--job);--cbg:var(--job-bg);--cink:var(--job-ink)}
+.k-life{--cc:var(--life);--cbg:var(--life-bg);--cink:var(--life-ink)}
+.k-relax{--cc:var(--relax);--cbg:var(--relax-bg);--cink:var(--relax-ink)}
+.k-none{--cc:var(--none);--cbg:var(--none-bg);--cink:var(--none-ink)}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:14px;display:flex;flex-direction:column;overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+
+/* ---------- top bar ---------- */
+.top{display:flex;flex-direction:column;gap:8px;padding:calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 10px calc(16px + env(safe-area-inset-left));background:var(--sheet);border-bottom:1px solid var(--rule-strong)}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.week-title{font-size:17px;font-weight:700;margin-right:4px;text-wrap:balance}
+.week-title small{font-weight:400;color:var(--muted);font-size:13px;margin-left:6px}
+.spacer{flex:1}
+.btn{border:1px solid var(--rule-strong);background:var(--sheet);border-radius:8px;padding:5px 10px;line-height:1.3;white-space:nowrap}
+.btn:hover{background:var(--accent-soft)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.icon{padding:5px 9px;min-width:32px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--relax);border-color:color-mix(in srgb,var(--relax) 40%,transparent)}
+.btn.wide{width:100%;padding:9px 12px}
+.btn-group{display:inline-flex}
+.btn-group .btn{border-radius:0;margin-left:-1px}
+.btn-group .btn:first-child{border-radius:8px 0 0 8px;margin-left:0}
+.btn-group .btn:last-child{border-radius:0 8px 8px 0}
+.sync{font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--none);display:inline-block}
+.sync[data-s="ok"] i{background:var(--life)}
+.sync[data-s="saving"] i{background:#e0a020}
+.sync[data-s="err"] i,.sync[data-s="local"] i{background:var(--relax)}
+
+.seg{display:inline-flex;border:1px solid var(--rule-strong);border-radius:999px;padding:2px;background:var(--paper);flex:none}
+.seg button{border:0;background:transparent;border-radius:999px;padding:3px 11px;font-size:13px;color:var(--muted);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--sheet);color:var(--ink);box-shadow:0 1px 3px rgba(20,30,60,.15);font-weight:500}
+.seg button .sw{display:inline-block;width:14px;height:9px;border-radius:2px;margin-right:5px;vertical-align:0}
+.sw.solid{background:var(--muted)}
+.sw.dash{border:1.5px dashed var(--muted)}
+.presets{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:thin;align-items:center;min-width:0;flex:1}
+.chip{flex:none;display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 11px 4px 9px;border:1px solid transparent;font-size:13px;line-height:1.4;user-select:none;background:var(--cbg);color:var(--cink)}
+.chip .dot{width:8px;height:8px;border-radius:50%;background:var(--cc)}
+.chip small{opacity:.7;font-family:var(--font-mono);font-size:11px}
+.chip.plan-mode{background:transparent;border:1.5px dashed var(--cc)}
+.chip.armed{border:1.5px solid var(--cc);box-shadow:0 0 0 3px color-mix(in srgb,var(--cc) 22%,transparent)}
+.chip.ghost{background:transparent;border:1px dashed var(--rule-strong);color:var(--muted)}
+.summary{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);align-items:center}
+.summary b{font-family:var(--font-mono);font-weight:500;color:var(--ink)}
+.summary .k{display:inline-flex;align-items:center;gap:5px}
+.summary .k i{width:10px;height:3px;border-radius:2px;display:inline-block;background:var(--cc)}
+.banner{font-size:13px;color:var(--accent);background:var(--accent-soft);border-radius:8px;padding:5px 10px}
+
+/* pomodoro pill */
+.pomo{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:3px 4px 3px 12px;background:var(--cbg);color:var(--cink);border:1px solid color-mix(in srgb,var(--cc) 40%,transparent);position:relative;overflow:hidden;white-space:nowrap}
+.pomo .fill{position:absolute;left:0;top:0;bottom:0;background:color-mix(in srgb,var(--cc) 18%,transparent);pointer-events:none}
+.pomo > *:not(.fill){position:relative}
+.pomo b{font-family:var(--font-mono);font-weight:500;font-variant-numeric:tabular-nums;font-size:14px}
+.pomo .btn{padding:2px 9px;font-size:12px;border-radius:999px;background:var(--sheet)}
+.pomo.brk{--cc:var(--life);--cbg:var(--life-bg);--cink:var(--life-ink)}
+
+/* ---------- board ---------- */
+.board{flex:1;min-height:0;overflow:auto;position:relative;background:var(--sheet);overscroll-behavior:contain;padding-bottom:env(safe-area-inset-bottom)}
+.grid{display:grid;grid-template-columns:var(--axis) repeat(7,minmax(var(--colmin),1fr));min-width:calc(var(--axis) + 7*var(--colmin))}
+.corner{position:sticky;top:0;left:0;z-index:6;background:var(--sheet);border-bottom:1px solid var(--rule-strong);border-right:1px solid var(--rule-strong)}
+.dayhead{position:sticky;top:0;z-index:5;background:var(--sheet);border-bottom:1px solid var(--rule-strong);border-left:1px solid var(--rule);padding:7px 6px 6px;display:flex;flex-direction:column;gap:4px;min-width:0;overflow:hidden}
+.dayhead.wk{background:var(--weekend)}
+.dayhead .dn{display:flex;align-items:baseline;gap:2px 5px;white-space:nowrap;flex-wrap:wrap}
+.dayhead .dn b{font-size:14px}
+.dayhead .dn span{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.dayhead.today .dn b{color:var(--now)}
+.dayhead.today .dn span{background:var(--now);color:#fff;border-radius:4px;padding:0 4px}
+.bar{display:flex;height:4px;border-radius:2px;background:var(--rule);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--cc)}
+.focus{font-size:11px;color:var(--muted);font-family:var(--font-mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.axis{position:sticky;left:0;z-index:4;background:var(--sheet);border-right:1px solid var(--rule-strong)}
+.axis .hl{position:absolute;right:6px;font-family:var(--font-mono);font-size:11px;color:var(--muted);transform:translateY(-50%);font-variant-numeric:tabular-nums}
+.axis .hl.mid{color:var(--accent);font-weight:500}
+.axis .nowtag{position:absolute;right:2px;transform:translateY(-50%);background:var(--now);color:#fff;font-family:var(--font-mono);font-size:10.5px;padding:1px 4px;border-radius:4px;z-index:2;font-variant-numeric:tabular-nums}
+.daycol{position:relative;border-left:1px solid var(--rule);cursor:copy;
+  background-image:repeating-linear-gradient(to bottom,var(--rule-strong) 0 1px,transparent 1px calc(var(--hh)/2),var(--rule) calc(var(--hh)/2),var(--rule) calc(var(--hh)/2 + 1px),transparent calc(var(--hh)/2 + 1px) var(--hh))}
+.daycol.wk{background-color:var(--weekend)}
+.daycol.today{background-color:color-mix(in srgb,var(--now) 4%,transparent)}
+.midline{position:absolute;left:0;right:0;border-top:1px dashed color-mix(in srgb,var(--accent) 55%,transparent);pointer-events:none}
+.past{position:absolute;left:0;right:0;top:0;background:color-mix(in srgb,var(--ink) 2.5%,transparent);pointer-events:none}
+.nowline{position:absolute;left:-1px;right:0;height:0;border-top:2px solid var(--now);z-index:4;pointer-events:none}
+.nowline::before{content:"";position:absolute;left:-5px;top:-6px;width:10px;height:10px;border-radius:50%;background:var(--now)}
+.pomoband{position:absolute;left:0;right:0;background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--cc) 30%,transparent) 0 4px,transparent 4px 8px);border-left:3px solid var(--cc);pointer-events:none;z-index:3;opacity:.8}
+
+.ev{position:absolute;border-radius:6px;padding:3px 5px 3px 7px;overflow:hidden;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+  background:var(--cbg);color:var(--cink);border-left:3px solid var(--cc);font-size:12px;line-height:1.3;z-index:2;transition:box-shadow .12s}
+.ev:hover{box-shadow:0 2px 8px rgba(20,30,60,.15)}
+.ev.plan:not(.done){background:color-mix(in srgb,var(--cbg) 40%,var(--sheet));border:1.5px dashed var(--cc);padding-left:6px}
+.ev.plan{padding-right:20px}
+.ev .t{font-weight:500;overflow-wrap:anywhere}
+.ev .m{font-family:var(--font-mono);font-size:10.5px;opacity:.8;font-variant-numeric:tabular-nums}
+.ev.short{display:flex;gap:5px;align-items:center;white-space:nowrap}
+.ev.short .t{overflow:hidden;text-overflow:ellipsis}
+.ev .ck{position:absolute;top:3px;right:3px;width:15px;height:15px;border-radius:50%;border:1.5px solid var(--cc);background:var(--sheet);padding:0;display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1;color:#fff;cursor:pointer}
+.ev.done .ck{background:var(--cc)}
+.ev.short .ck{top:50%;transform:translateY(-50%)}
+.ev .h{position:absolute;left:0;right:0;bottom:0;height:8px;cursor:ns-resize;touch-action:none}
+.ev .h::after{content:"";position:absolute;left:50%;bottom:2px;width:16px;margin-left:-8px;height:2px;border-radius:1px;background:currentColor;opacity:0}
+.ev:hover .h::after{opacity:.35}
+@media (pointer:coarse){.ev .h{height:14px}.ev .h::after{opacity:.3}.ev .ck{width:18px;height:18px}}
+.ev.dragging{box-shadow:var(--shadow);z-index:10;cursor:grabbing;opacity:.95}
+body.dragging{cursor:grabbing;user-select:none;-webkit-user-select:none}
+
+/* ---------- modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(10,14,24,.38);display:none;align-items:flex-end;justify-content:center;z-index:50}
+.overlay.show{display:flex}
+@media (min-width:600px){.overlay{align-items:center;padding:24px}}
+.modal{background:var(--sheet);width:100%;max-width:460px;border-radius:16px 16px 0 0;box-shadow:var(--shadow);padding:18px 18px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;max-height:92%;overflow:auto}
+@media (min-width:600px){.modal{border-radius:14px}}
+.modal h2{margin:0;font-size:16px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label,.lbl{font-size:12px;color:var(--muted)}
+.field input[type=text],.field input[type=email],.field input[type=password],.field select,.field textarea,.field input[type=number]{border:1px solid var(--rule-strong);background:var(--paper);border-radius:8px;padding:8px 10px;width:100%}
+.field textarea{min-height:54px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.three{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px}
+.cats{display:flex;gap:6px;flex-wrap:wrap}
+.cats label{display:inline-flex}
+.cats input{position:absolute;opacity:0;pointer-events:none}
+.cats .chip{border:1.5px solid transparent}
+.cats input:checked + .chip{border-color:var(--cc);font-weight:500}
+.cats input:focus-visible + .chip{outline:2px solid var(--accent);outline-offset:2px}
+.check{display:flex;align-items:center;gap:8px;font-size:14px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.quick{display:flex;gap:6px;flex-wrap:wrap}
+.preset-row{display:grid;grid-template-columns:1fr 66px 100px 30px;gap:6px;align-items:center}
+.preset-row input,.preset-row select{border:1px solid var(--rule-strong);background:var(--paper);border-radius:7px;padding:6px 8px;width:100%;min-width:0}
+.hint{font-size:12px;color:var(--muted);line-height:1.55;margin:0}
+.err{font-size:13px;color:var(--relax);min-height:1em;margin:0}
+hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--sheet);padding:9px 14px;border-radius:8px;font-size:13px;z-index:60;display:none;max-width:90vw}
+.toast.show{display:block}
+@media (max-width:520px){
+  :root{--axis:42px;--colmin:58px}
+  .week-title{font-size:15px}
+  .ev.short .m{display:none}
+  .ev{padding:2px 3px 2px 5px;font-size:11.5px}
+  .focus{font-size:10px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="row">
+    <div class="week-title" id="weekTitle">本周</div>
+    <div class="btn-group" role="group" aria-label="切换周">
+      <button class="btn icon" id="prevWk" aria-label="上一周">‹</button>
+      <button class="btn" id="thisWk">本周</button>
+      <button class="btn icon" id="nextWk" aria-label="下一周">›</button>
+    </div>
+    <div class="spacer"></div>
+    <span class="sync" id="sync" data-s="loading"><i></i><span id="syncText">载入中…</span></span>
+    <div class="btn-group" role="group" aria-label="缩放">
+      <button class="btn icon" id="zoomOut" aria-label="缩小时间轴">−</button>
+      <button class="btn icon" id="zoomIn" aria-label="放大时间轴">+</button>
+    </div>
+    <button class="btn" id="copyPrev" title="把上周的安排复制到这一周">复制上周</button>
+    <button class="btn icon" id="openSettings" aria-label="设置">⚙</button>
+  </div>
+  <div class="row" style="flex-wrap:nowrap">
+    <div class="seg" role="group" aria-label="新增方式">
+      <button type="button" id="modeRecord" aria-pressed="true"><span class="sw solid"></span>直接记录</button>
+      <button type="button" id="modePlan" aria-pressed="false"><span class="sw dash"></span>提前安排</button>
+    </div>
+    <div class="presets" id="presets" aria-label="预设项目"></div>
+  </div>
+  <div class="row">
+    <div class="summary" id="summary"></div>
+    <span class="banner" id="banner" hidden></span>
+    <div class="spacer"></div>
+    <div id="pomoBox"></div>
+  </div>
+</header>
+
+<main class="board" id="board"><div class="grid" id="grid"></div></main>
+
+<!-- event editor -->
+<div class="overlay" id="evOverlay">
+  <form class="modal" id="evForm" autocomplete="off">
+    <div class="row"><h2 id="evHeading">新建</h2><div class="spacer"></div>
+      <div class="seg" role="radiogroup" aria-label="类型">
+        <button type="button" data-type="record" aria-pressed="true"><span class="sw solid"></span>直接记录</button>
+        <button type="button" data-type="plan" aria-pressed="false"><span class="sw dash"></span>提前安排</button>
+      </div>
+    </div>
+    <div class="quick" id="evQuick"></div>
+    <div class="field">
+      <label for="fTitle">名称</label>
+      <input type="text" id="fTitle" maxlength="60" placeholder="例如：数学 · 一套题">
+    </div>
+    <div class="field">
+      <span class="lbl" id="catLbl">类别</span>
+      <div class="cats" id="fCats" role="radiogroup" aria-labelledby="catLbl"></div>
+    </div>
+    <div class="three">
+      <div class="field"><label for="fDay">日期</label><select id="fDay"></select></div>
+      <div class="field"><label for="fStart">开始</label><select id="fStart"></select></div>
+      <div class="field"><label for="fLen">时长</label><select id="fLen"></select></div>
+    </div>
+    <div class="field">
+      <label for="fNote">备注</label>
+      <textarea id="fNote" maxlength="500" placeholder="可选"></textarea>
+    </div>
+    <label class="check" id="doneRow"><input type="checkbox" id="fDone"> 已完成（虚线变实线）</label>
+    <div class="actions">
+      <button type="button" class="btn danger" id="evDelete">删除</button>
+      <button type="button" class="btn" id="evDup">复制一份</button>
+      <button type="button" class="btn" id="evPomo">开番茄钟</button>
+      <div class="spacer"></div>
+      <button type="button" class="btn" id="evCancel">取消</button>
+      <button type="submit" class="btn primary">保存</button>
+    </div>
+  </form>
+</div>
+
+<!-- pomodoro setup -->
+<div class="overlay" id="pomoOverlay">
+  <form class="modal" id="pomoForm" autocomplete="off">
+    <h2>番茄钟</h2>
+    <div class="field">
+      <span class="lbl" id="pCatLbl">这一轮属于</span>
+      <div class="cats" id="pCats" role="radiogroup" aria-labelledby="pCatLbl"></div>
+    </div>
+    <div class="field">
+      <label for="pTitle">在做什么</label>
+      <input type="text" id="pTitle" maxlength="60" list="pTitleList" placeholder="例如：数学">
+      <datalist id="pTitleList"></datalist>
+    </div>
+    <div class="two">
+      <div class="field"><label for="pFocus">专注</label><select id="pFocus"></select></div>
+      <div class="field"><label for="pBreak">休息</label><select id="pBreak"></select></div>
+    </div>
+    <label class="check"><input type="checkbox" id="pLog" checked> 专注结束后自动记到时间轴上</label>
+    <p class="hint">到点会响一声并弹通知。电脑上切到别的窗口也会提醒；手机锁屏后浏览器会暂停，回到页面时再提醒，并补记这一段。</p>
+    <div class="actions"><div class="spacer"></div>
+      <button type="button" class="btn" id="pCancel">取消</button>
+      <button type="submit" class="btn primary">开始专注</button>
+    </div>
+  </form>
+</div>
+
+<!-- settings -->
+<div class="overlay" id="setOverlay">
+  <form class="modal" id="setForm" autocomplete="off">
+    <h2>设置</h2>
+    <div class="two">
+      <div class="field"><label for="sStart">时间轴从</label><select id="sStart"></select></div>
+      <div class="field"><label for="sEnd">到</label><select id="sEnd"></select></div>
+    </div>
+    <p class="hint">过了午夜、还没到时间轴起点的时段算作前一天，适合晚睡的日子。</p>
+    <div class="field">
+      <span class="lbl">预设项目（名称 · 分钟 · 类别）</span>
+      <div id="presetRows" style="display:flex;flex-direction:column;gap:6px"></div>
+      <div><button type="button" class="btn" id="addPreset">＋ 添加预设</button></div>
+    </div>
+    <hr class="sep">
+    <div class="field" id="acctBox"></div>
+    <div class="actions">
+      <div class="spacer"></div>
+      <button type="button" class="btn" id="setCancel">取消</button>
+      <button type="submit" class="btn primary">保存设置</button>
+    </div>
+  </form>
+</div>
+
+<!-- sign in -->
+<div class="overlay" id="loginOverlay">
+  <form class="modal" id="loginForm" autocomplete="on">
+    <h2>登录以在各设备间同步</h2>
+    <button type="button" class="btn wide" id="gLogin">用 Google 账号登录</button>
+    <hr class="sep">
+    <div class="field"><label for="lEmail">邮箱</label><input type="email" id="lEmail" autocomplete="username" required></div>
+    <div class="field"><label for="lPass">密码（至少 6 位）</label><input type="password" id="lPass" autocomplete="current-password" minlength="6" required></div>
+    <p class="err" id="lErr"></p>
+    <div class="actions">
+      <button type="button" class="btn" id="lSignup">注册新账号</button>
+      <div class="spacer"></div>
+      <button type="submit" class="btn primary">邮箱登录</button>
+    </div>
+    <p class="hint">在手机主屏幕打开时如果 Google 登录没反应，改用邮箱登录即可，两种方式选一种一直用。</p>
+  </form>
+</div>
+
+<!-- confirm -->
+<div class="overlay" id="askOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="askText">
+    <p id="askText" style="margin:0;line-height:1.6"></p>
+    <div class="actions"><div class="spacer"></div>
+      <button type="button" class="btn" id="askNo">取消</button>
+      <button type="button" class="btn primary" id="askYes">确定</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script type="module">
+import { firebaseConfig } from "./firebase-config.js";
+
+const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
+const CATS = {study:"备考", phd:"PhD申请", job:"找工作", life:"生活琐事", relax:"放松"};
+const CAT_ORDER = ["study","phd","job","life","relax"];
+const catName = c => CATS[c] || "未定";
+const kcls = c => "k-" + (CATS[c] ? c : "none");
+const DEFAULT_PRESETS = [
+  {title:"单词",len:60,cat:"study"},{title:"数学",len:60,cat:"study"},{title:"填空",len:60,cat:"study"},
+  {title:"阅读",len:60,cat:"study"},{title:"作文",len:120,cat:"study"},
+  {title:"套磁邮件",len:60,cat:"phd"},{title:"申请材料",len:90,cat:"phd"},
+  {title:"投简历",len:60,cat:"job"},{title:"网测 / 面试",len:60,cat:"job"},
+  {title:"兼职",len:240,cat:"life"},{title:"吃饭",len:60,cat:"life"},{title:"家务采购",len:45,cat:"life"},
+  {title:"自由时间",len:90,cat:"relax"},{title:"运动",len:60,cat:"relax"}
+];
+const DOW = ["周日","周一","周二","周三","周四","周五","周六"];
+const ZOOMS = [36,44,52,64,80];
+
+let settings = {start:7, end:27, presets: DEFAULT_PRESETS.map(p=>({...p}))};
+let weekStart = null, events = [], hh = 52, armed = null, editing = null;
+let mode = "record";
+
+// ---------- utils ----------
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,"0");
+const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-3);
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const addDays = (d,n) => new Date(d.getFullYear(), d.getMonth(), d.getDate()+n);
+const ymd = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const satOf = d => addDays(d, -((d.getDay() - 6 + 7) % 7));
+const fmt = m => pad(Math.floor(m/60)%24)+":"+pad(m%60);
+const fmtLen = m => { const h=Math.floor(m/60), r=m%60; return h ? (r ? h+"h"+r : h+"h") : r+"m"; };
+const hours = m => (Math.round(m/6)/10).toString();
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const weekKey = d => "w" + ymd(d);
+const dayDiff = (a,b) => Math.round((a - b) / 864e5);
+const counts = e => !e.plan || e.done;
+function toLogical(dt){
+  let day = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+  let m = dt.getHours()*60 + dt.getMinutes();
+  if (m < settings.start*60 && m + 1440 < settings.end*60) { day = addDays(day,-1); m += 1440; }
+  return {day, m};
+}
+const logicalNow = () => toLogical(new Date());
+function sanitizeEvents(list){
+  if (!Array.isArray(list)) return [];
+  return list.filter(e => e && typeof e === "object").map(e => ({
+    id: String(e.id || uid()).slice(0,40),
+    d: clamp(parseInt(e.d,10)||0, 0, 6),
+    s: clamp(parseInt(e.s,10)||0, 0, 2880),
+    len: clamp(parseInt(e.len,10)||60, 5, 1440),
+    title: String(e.title||"").slice(0,60),
+    cat: CATS[e.cat] ? e.cat : "",
+    plan: !!e.plan, done: !!e.done,
+    note: String(e.note||"").slice(0,500)
+  }));
+}
+function sanitizeSettings(o){
+  const s = {start:7, end:27, presets: DEFAULT_PRESETS.map(p=>({...p}))};
+  if (!o || typeof o !== "object") return s;
+  const st = parseInt(o.start,10), en = parseInt(o.end,10);
+  if (st>=0 && st<=12) s.start = st;
+  if (en>=18 && en<=30 && en >= s.start+8) s.end = en;
+  if (Array.isArray(o.presets)) s.presets = o.presets.filter(p=>p && p.title).slice(0,40).map(p=>({
+    title:String(p.title).slice(0,30), len:clamp(parseInt(p.len,10)||60,5,720), cat: CATS[p.cat]?p.cat:""
+  }));
+  return s;
+}
+let toastT=null;
+function toast(msg, ms){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"), ms||2600); }
+const setSync = (state, text) => { $("sync").dataset.s = state; $("syncText").textContent = text; };
+function lsGet(k){ try{ const v = localStorage.getItem("wkplan:"+k); return v ? JSON.parse(v) : null; }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem("wkplan:"+k, JSON.stringify(v)); return true; }catch(e){ return false; } }
+
+// ---------- storage: Firebase when configured, otherwise this browser ----------
+const store = {mode:"local", fs:null, auth:null, A:null, F:null, user:null, unsubWeek:null, unsubSet:null, loadT:null};
+
+function wRef(key){ return store.F.doc(store.fs, "users", store.user.uid, "weeks", key); }
+function sRef(){ return store.F.doc(store.fs, "users", store.user.uid, "meta", "settings"); }
+
+async function initStore(){
+  if (!firebaseConfig || !firebaseConfig.apiKey) {
+    store.mode = "local";
+    const s = lsGet("settings"); if (s) settings = sanitizeSettings(s);
+    setSync("local", "仅存本机");
+    loadWeek();
+    return;
+  }
+  try{
+    const [appM, authM, fsM] = await Promise.all([
+      import(FB+"firebase-app.js"), import(FB+"firebase-auth.js"), import(FB+"firebase-firestore.js")
+    ]);
+    const app = appM.initializeApp(firebaseConfig);
+    store.A = authM; store.F = fsM;
+    store.auth = authM.getAuth(app);
+    try{
+      store.fs = fsM.initializeFirestore(app, {localCache: fsM.persistentLocalCache({tabManager: fsM.persistentMultipleTabManager()})});
+    }catch(e){ store.fs = fsM.getFirestore(app); }
+    authM.onAuthStateChanged(store.auth, user => {
+      store.user = user;
+      if (user) {
+        store.mode = "cloud";
+        $("loginOverlay").classList.remove("show");
+        if (store.unsubSet) store.unsubSet();
+        store.unsubSet = fsM.onSnapshot(sRef(), snap => {
+          if (snap.exists()) { settings = sanitizeSettings(snap.data()); renderAll(); }
+        }, () => {});
+        loadWeek();
+        if (!lsGet("migrated:"+user.uid) && localWeekKeys().length) offerMigrate();
+      } else {
+        store.mode = "signedout";
+        if (store.unsubWeek) { store.unsubWeek(); store.unsubWeek = null; }
+        if (store.unsubSet) { store.unsubSet(); store.unsubSet = null; }
+        events = []; renderAll();
+        setSync("err","未登录");
+        $("loginOverlay").classList.add("show");
+      }
+    });
+  }catch(e){
+    console.error(e);
+    store.mode = "local";
+    setSync("err","同步服务加载失败，暂存本机");
+    const s = lsGet("settings"); if (s) settings = sanitizeSettings(s);
+    loadWeek();
+  }
+}
+
+function loadWeek(){
+  if (store.unsubWeek) { store.unsubWeek(); store.unsubWeek = null; }
+  clearTimeout(store.loadT);
+  events = [];
+  const key = weekKey(weekStart);
+  if (store.mode === "cloud") {
+    setSync("saving","同步中…");
+    store.loadT = setTimeout(()=> setSync("err","连不上服务器，显示的是本机缓存"), 10000);
+    store.unsubWeek = store.F.onSnapshot(wRef(key), {includeMetadataChanges:true}, snap => {
+      if (key !== weekKey(weekStart)) return;
+      if (!snap.metadata.fromCache) { clearTimeout(store.loadT); setSync(snap.metadata.hasPendingWrites ? "saving" : "ok", snap.metadata.hasPendingWrites ? "保存中…" : "已同步"); }
+      else if (snap.metadata.hasPendingWrites) setSync("saving","离线，联网后同步");
+      if (pendingT) return;               // a local edit is about to be written; don't clobber it
+      events = snap.exists() ? sanitizeEvents((snap.data()||{}).events) : [];
+      renderAll();
+    }, err => {
+      clearTimeout(store.loadT);
+      setSync("err", err && err.code === "permission-denied" ? "没有权限，检查 Firestore 规则" : "同步中断，刷新页面重试");
+    });
+  } else if (store.mode === "local") {
+    const v = lsGet(key); events = sanitizeEvents(v && v.events);
+  }
+  renderAll();
+}
+
+async function writeWeek(key, list){
+  const data = {events: list.map(e=>({...e})), updatedAt: Date.now()};
+  if (store.mode === "cloud") {
+    store.F.setDoc(wRef(key), data).catch(err => {
+      setSync("err", err && err.code === "permission-denied" ? "没有权限，检查 Firestore 规则" : "有改动未保存");
+      toast("没保存上，检查网络后刷新再试");
+    });
+  } else if (store.mode === "local") {
+    if (!lsSet(key, data)) toast("浏览器存储已满或不可用，这次改动没保存");
+  }
+}
+async function readWeek(key){
+  if (store.mode === "cloud") {
+    try{ const s = await store.F.getDoc(wRef(key)); return s.exists() ? sanitizeEvents((s.data()||{}).events) : []; }
+    catch(e){ return null; }
+  }
+  const v = lsGet(key); return sanitizeEvents(v && v.events);
+}
+function saveSettings(){
+  if (store.mode === "cloud") store.F.setDoc(sRef(), {...settings, updatedAt: Date.now()}).catch(()=>toast("设置没保存上，稍后再试"));
+  else lsSet("settings", settings);
+}
+
+let pendingT = null;
+function changed(){
+  const key = weekKey(weekStart), snapshot = events.map(e=>({...e}));
+  clearTimeout(pendingT);
+  pendingT = setTimeout(()=>{ pendingT = null; writeWeek(key, snapshot); }, 400);
+  pendingFlush = () => { clearTimeout(pendingT); pendingT = null; writeWeek(key, snapshot); };
+  renderAll();
+}
+let pendingFlush = null;
+function flushNow(){ if (pendingT && pendingFlush) pendingFlush(); }
+window.addEventListener("pagehide", flushNow);
+document.addEventListener("visibilitychange", ()=>{ if (document.hidden) flushNow(); });
+
+// local → cloud migration (data entered before sign-in)
+function localWeekKeys(){
+  const out = [];
+  try{ for (let i=0;i<localStorage.length;i++){ const k = localStorage.key(i); if (/^wkplan:w\d{4}-\d{2}-\d{2}$/.test(k)) out.push(k.slice(7)); } }catch(e){}
+  return out;
+}
+async function offerMigrate(){
+  const keys = localWeekKeys();
+  const n = keys.reduce((a,k)=>a + sanitizeEvents((lsGet(k)||{}).events).length, 0);
+  if (!n) { lsSet("migrated:"+store.user.uid, true); return; }
+  if (!(await ask(`这台设备上有登录前记下的 ${n} 项，要上传到账号里吗？已经在账号里的不会被覆盖。`, "上传"))) { lsSet("migrated:"+store.user.uid, true); return; }
+  for (const k of keys){
+    const local = sanitizeEvents((lsGet(k)||{}).events); if (!local.length) continue;
+    const cloud = await readWeek(k); if (cloud === null) { toast("上传中断，检查网络后在设置里重试"); return; }
+    const ids = new Set(cloud.map(e=>e.id));
+    const merged = cloud.concat(local.filter(e=>!ids.has(e.id)));
+    if (k === weekKey(weekStart)) { events = merged; changed(); } else writeWeek(k, merged);
+  }
+  lsSet("migrated:"+store.user.uid, true);
+  toast("已上传");
+}
+
+// ---------- render ----------
+const minToY = m => (m - settings.start*60) / 60 * hh;
+function totals(list){
+  const byDay = Array.from({length:7}, ()=>({})), wk = {};
+  let pend = 0;
+  for (const e of list){
+    if (!counts(e)) { pend++; continue; }
+    const c = e.cat || "none";
+    byDay[e.d][c] = (byDay[e.d][c]||0) + e.len; wk[c] = (wk[c]||0) + e.len;
+  }
+  return {byDay, wk, pend};
+}
+function layoutDay(list){
+  list.sort((a,b)=> a.s-b.s || b.len-a.len);
+  let cluster=[], end=-1;
+  const finish = () => {
+    const cols=[];
+    for (const e of cluster){ let i = cols.findIndex(x => x <= e.s); if (i<0){ i=cols.length; cols.push(0); } cols[i] = e.s+e.len; e._c = i; }
+    for (const e of cluster) e._n = cols.length;
+  };
+  for (const e of list){
+    if (cluster.length && e.s >= end){ finish(); cluster=[]; end=-1; }
+    cluster.push(e); end = Math.max(end, e.s+e.len);
+  }
+  if (cluster.length) finish();
+}
+const ORDER_ALL = [...CAT_ORDER, "none"];
+
+function renderTop(){
+  const end = addDays(weekStart, 6);
+  const rel = Math.round(dayDiff(weekStart, satOf(logicalNow().day)) / 7);
+  const tag = rel===0 ? "本周" : rel===1 ? "下周" : rel===-1 ? "上周" : (rel>0 ? rel+" 周后" : (-rel)+" 周前");
+  $("weekTitle").innerHTML = `${weekStart.getMonth()+1}月${weekStart.getDate()}日 – ${end.getMonth()+1}月${end.getDate()}日<small>${tag}</small>`;
+  $("thisWk").disabled = rel === 0;
+  $("modeRecord").setAttribute("aria-pressed", mode==="record");
+  $("modePlan").setAttribute("aria-pressed", mode==="plan");
+  $("presets").innerHTML = settings.presets.map((p,i)=>
+    `<button type="button" class="chip ${kcls(p.cat)}${mode==="plan"?" plan-mode":""}${armed===i?" armed":""}" data-i="${i}" aria-pressed="${armed===i}"><span class="dot"></span>${esc(p.title)}<small>${fmtLen(p.len)}</small></button>`
+  ).join("") + `<button type="button" class="chip ghost" id="chipAdd">＋ 自定义</button>`;
+  const t = totals(events);
+  const parts = ORDER_ALL.filter(c=>t.wk[c]>0).map(c=>`<span class="k ${kcls(c)}"><i></i>${catName(c)} <b>${hours(t.wk[c])}h</b></span>`);
+  if (t.pend) parts.push(`<span class="k">提前安排未完成 <b>${t.pend}</b></span>`);
+  $("summary").innerHTML = events.length ? parts.join("") : `<span>这一周还空着：先点一个预设，再点时间格放进去；或者直接点空白格新建。</span>`;
+  const b = $("banner");
+  if (armed !== null && settings.presets[armed]) { b.textContent = `点时间格放入「${settings.presets[armed].title}」（${mode==="plan"?"提前安排":"直接记录"}），可以连续放；再点一次标签取消`; b.hidden = false; }
+  else b.hidden = true;
+}
+
+function renderBoard(){
+  const grid = $("grid");
+  const S = settings.start*60, E = settings.end*60, H = (E - S)/60 * hh;
+  document.documentElement.style.setProperty("--hh", hh+"px");
+  const ln = logicalNow();
+  const todayIdx = dayDiff(ln.day, weekStart);
+  const tt = totals(events).byDay;
+  let html = `<div class="corner"></div>`;
+  for (let i=0;i<7;i++){
+    const d = addDays(weekStart, i);
+    const segs = ORDER_ALL.map(c => tt[i][c] ? `<i class="${kcls(c)}" style="width:${tt[i][c]/(E-S)*100}%"></i>` : "").join("");
+    const total = ORDER_ALL.reduce((a,c)=>a+(tt[i][c]||0),0);
+    html += `<div class="dayhead${i<2?" wk":""}${i===todayIdx?" today":""}">
+      <div class="dn"><b>${DOW[d.getDay()]}</b><span>${d.getMonth()+1}/${d.getDate()}</span></div>
+      <div class="bar">${segs}</div>
+      <div class="focus">${total ? "备考 "+hours(tt[i].study||0)+"h · 共 "+hours(total)+"h" : "&nbsp;"}</div>
+    </div>`;
+  }
+  html += `<div class="axis" style="height:${H}px">`;
+  for (let m = S + 60; m <= E; m += 60) html += `<div class="hl${m%1440===0?" mid":""}" style="top:${minToY(m)}px">${m%1440===0 ? "0:00" : fmt(m)}</div>`;
+  if (todayIdx>=0 && todayIdx<7 && ln.m>=S && ln.m<=E) html += `<div class="nowtag" style="top:${minToY(ln.m)}px">${fmt(ln.m)}</div>`;
+  html += `</div>`;
+  const byDay = Array.from({length:7}, ()=>[]);
+  for (const e of events) byDay[e.d].push(e);
+  // live pomodoro band
+  let band = null;
+  if (pomo && pomo.phase === "focus") {
+    const st = toLogical(new Date(pomo.startedAt));
+    const di = dayDiff(st.day, weekStart);
+    const nowM = Math.min(ln.m + (dayDiff(ln.day, st.day))*1440, st.m + pomo.focus);
+    if (di>=0 && di<7) band = {d:di, s:st.m, e:Math.max(nowM, st.m+1), cat:pomo.cat};
+  }
+  for (let i=0;i<7;i++){
+    layoutDay(byDay[i]);
+    let inner = "";
+    if (E > 1440 && S < 1440) inner += `<div class="midline" style="top:${minToY(1440)}px"></div>`;
+    if (i < todayIdx) inner += `<div class="past" style="height:${H}px"></div>`;
+    if (i === todayIdx && ln.m > S) inner += `<div class="past" style="height:${clamp(minToY(ln.m),0,H)}px"></div>`;
+    for (const e of byDay[i]){
+      const top = minToY(e.s), h = Math.max(e.len/60*hh - 2, 14), w = 100/e._n, short = h < 34;
+      inner += `<div class="ev ${kcls(e.cat)}${e.plan?" plan":""}${e.done?" done":""}${short?" short":""}" data-id="${e.id}" role="button" tabindex="0"
+        aria-label="${e.plan?(e.done?"已完成的提前安排 ":"提前安排 "):""}${esc(e.title||catName(e.cat))} ${fmt(e.s)} 到 ${fmt(e.s+e.len)}"
+        style="top:${top+1}px;height:${h}px;left:calc(${w*e._c}% + 2px);width:calc(${w}% - 4px)">
+        <div class="t">${esc(e.title || catName(e.cat))}</div><div class="m">${fmt(e.s)}${short?"":"–"+fmt(e.s+e.len)}</div>
+        ${e.plan ? `<button type="button" class="ck" aria-label="${e.done?"标记为未完成":"标记为完成"}">${e.done?"✓":""}</button>` : ""}
+        <div class="h" aria-hidden="true"></div></div>`;
+    }
+    if (band && band.d === i) inner += `<div class="pomoband ${kcls(band.cat)}" style="top:${minToY(band.s)}px;height:${(band.e-band.s)/60*hh}px"></div>`;
+    if (i === todayIdx && ln.m>=S && ln.m<=E) inner += `<div class="nowline" style="top:${minToY(ln.m)}px"></div>`;
+    html += `<div class="daycol${i<2?" wk":""}${i===todayIdx?" today":""}" data-d="${i}" style="height:${H}px">${inner}</div>`;
+  }
+  grid.innerHTML = html;
+}
+function renderAll(){ renderTop(); renderBoard(); renderPomo(); }
+
+function scrollToNow(){
+  const b = $("board"), ln = logicalNow();
+  b.scrollTop = Math.max(0, ln.m >= settings.start*60 ? minToY(ln.m) - 90 : 0);
+  const col = document.querySelector(`.daycol[data-d="${dayDiff(ln.day, weekStart)}"]`);
+  if (col && b.scrollWidth > b.clientWidth + 4){
+    b.scrollLeft = Math.max(0, col.offsetLeft - document.querySelector(".axis").offsetWidth - col.offsetWidth*0.3);
+  }
+}
+
+// ---------- event CRUD ----------
+function fit(e){ const S=settings.start*60, E=settings.end*60; e.len = clamp(e.len, 5, E-S); e.s = clamp(e.s, S, E - e.len); }
+function addEvent(o){
+  const e = {id:uid(), d:o.d, s:o.s, len:o.len, title:o.title||"", cat:CATS[o.cat]?o.cat:"", plan:!!o.plan, done:!!o.done && !!o.plan, note:o.note||""};
+  fit(e); events.push(e); changed(); return e;
+}
+const findEv = id => events.find(e=>e.id===id);
+
+// ---------- editor ----------
+function fillSelect(sel, opts, val){ sel.innerHTML = opts.map(o=>`<option value="${o.v}"${String(o.v)===String(val)?" selected":""}>${esc(o.t)}</option>`).join(""); }
+function catRadios(name, val, withNone){
+  const keys = withNone ? [...CAT_ORDER, ""] : CAT_ORDER;
+  return keys.map(c=>`<label><input type="radio" name="${name}" value="${c}"${val===c?" checked":""}><span class="chip ${kcls(c)}"><span class="dot"></span>${catName(c)}</span></label>`).join("");
+}
+let edType = "record";
+function setEdType(t){
+  edType = t;
+  document.querySelectorAll("#evForm [data-type]").forEach(b=>b.setAttribute("aria-pressed", b.dataset.type===t));
+  $("doneRow").hidden = t !== "plan";
+}
+function openEditor(ev, isNew){
+  editing = {ev, isNew};
+  $("evHeading").textContent = isNew ? "新建" : "编辑";
+  setEdType(ev.plan ? "plan" : "record");
+  $("fTitle").value = ev.title;
+  $("fCats").innerHTML = catRadios("cat", ev.cat, true);
+  fillSelect($("fDay"), Array.from({length:7},(_,i)=>{const d=addDays(weekStart,i);return {v:i,t:`${DOW[d.getDay()]} ${d.getMonth()+1}/${d.getDate()}`};}), ev.d);
+  const S=settings.start*60, E=settings.end*60, starts=[];
+  for (let m=S;m<E;m+=15) starts.push({v:m, t: fmt(m) + (m>=1440?" (次日)":"")});
+  if (ev.s%15) starts.push({v:ev.s,t:fmt(ev.s)});
+  fillSelect($("fStart"), starts.sort((a,b)=>a.v-b.v), ev.s);
+  const lens=[15,30,45,50,60,75,90,105,120,150,180,210,240,300,360,480];
+  if (!lens.includes(ev.len)) lens.push(ev.len);
+  fillSelect($("fLen"), lens.sort((a,b)=>a-b).map(l=>({v:l,t:fmtLen(l)})), ev.len);
+  $("fNote").value = ev.note || "";
+  $("fDone").checked = !!ev.done;
+  $("evDelete").hidden = $("evDup").hidden = isNew;
+  $("evQuick").innerHTML = isNew ? settings.presets.map((p,i)=>`<button type="button" class="chip ${kcls(p.cat)}" data-q="${i}"><span class="dot"></span>${esc(p.title)}<small>${fmtLen(p.len)}</small></button>`).join("") : "";
+  $("evQuick").hidden = !isNew;
+  $("evOverlay").classList.add("show");
+  if (isNew && matchMedia("(pointer:fine)").matches) setTimeout(()=>$("fTitle").focus(), 30);
+}
+function closeEditor(){ $("evOverlay").classList.remove("show"); editing = null; }
+function readForm(){
+  const r = document.querySelector('#fCats input:checked');
+  return { title:$("fTitle").value.trim(), cat: r ? r.value : "", d:+$("fDay").value, s:+$("fStart").value, len:+$("fLen").value,
+           note:$("fNote").value.trim(), plan: edType==="plan", done: edType==="plan" && $("fDone").checked };
+}
+document.querySelectorAll("#evForm [data-type]").forEach(b=> b.onclick = ()=> setEdType(b.dataset.type));
+$("evQuick").addEventListener("click", e=>{
+  const b = e.target.closest("[data-q]"); if (!b) return;
+  const p = settings.presets[+b.dataset.q];
+  $("fTitle").value = p.title;
+  const r = document.querySelector(`#fCats input[value="${p.cat}"]`); if (r) r.checked = true;
+  const sel = $("fLen"); if (![...sel.options].some(o=>+o.value===p.len)) sel.add(new Option(fmtLen(p.len), p.len));
+  sel.value = p.len;
+});
+$("evForm").addEventListener("submit", e=>{
+  e.preventDefault(); if (!editing) return;
+  const f = readForm();
+  if (editing.isNew) addEvent(f);
+  else { Object.assign(editing.ev, f); fit(editing.ev); changed(); }
+  closeEditor();
+});
+$("evCancel").onclick = closeEditor;
+$("evDelete").onclick = ()=>{ if (!editing) return; const id = editing.ev.id; events = events.filter(x=>x.id!==id); closeEditor(); changed(); toast("已删除"); };
+$("evDup").onclick = ()=>{ if (!editing) return; const f = readForm(); closeEditor(); addEvent({...f, s:f.s+f.len, done:false}); toast("已复制到紧接着的时段"); };
+$("evPomo").onclick = ()=>{ const f = readForm(); closeEditor(); openPomo(f.cat || "study", f.title); };
+$("evOverlay").addEventListener("pointerdown", e=>{ if (e.target === $("evOverlay")) closeEditor(); });
+
+function ask(text, yes){
+  return new Promise(res=>{
+    $("askText").textContent = text; $("askYes").textContent = yes || "确定";
+    $("askOverlay").classList.add("show");
+    const done = v => { $("askOverlay").classList.remove("show"); $("askYes").onclick = $("askNo").onclick = null; res(v); };
+    $("askYes").onclick = ()=>done(true); $("askNo").onclick = ()=>done(false);
+  });
+}
+
+// ---------- pomodoro ----------
+let pomo = null;     // {phase:'focus'|'break'|'ready', cat,title,focus,brk,log,startedAt,endsAt}
+let audioCtx = null;
+try{ const p = JSON.parse(localStorage.getItem("wkplan:pomo")||"null"); if (p && p.phase) pomo = p; }catch(e){}
+const savePomo = () => { try{ localStorage.setItem("wkplan:pomo", JSON.stringify(pomo)); }catch(e){} };
+let pomoPrefs = {cat:"study", title:"", focus:50, brk:10, log:true};
+try{ Object.assign(pomoPrefs, JSON.parse(localStorage.getItem("wkplan:pomoPrefs")||"{}")); }catch(e){}
+
+function openPomo(cat, title){
+  $("pCats").innerHTML = catRadios("pcat", cat || pomoPrefs.cat, false);
+  $("pTitle").value = title != null ? title : pomoPrefs.title;
+  $("pTitleList").innerHTML = settings.presets.map(p=>`<option value="${esc(p.title)}">`).join("");
+  fillSelect($("pFocus"), [25,30,40,45,50,55,60,75,90].map(v=>({v,t:v+" 分钟"})), pomoPrefs.focus);
+  fillSelect($("pBreak"), [5,10,15,20,30].map(v=>({v,t:v+" 分钟"})), pomoPrefs.brk);
+  $("pLog").checked = pomoPrefs.log;
+  $("pomoOverlay").classList.add("show");
+}
+$("pCancel").onclick = ()=> $("pomoOverlay").classList.remove("show");
+$("pomoOverlay").addEventListener("pointerdown", e=>{ if (e.target === $("pomoOverlay")) $("pomoOverlay").classList.remove("show"); });
+$("pomoForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const r = document.querySelector('#pCats input:checked');
+  pomoPrefs = {cat: r ? r.value : "study", title: $("pTitle").value.trim(), focus:+$("pFocus").value, brk:+$("pBreak").value, log:$("pLog").checked};
+  try{ localStorage.setItem("wkplan:pomoPrefs", JSON.stringify(pomoPrefs)); }catch(_){}
+  $("pomoOverlay").classList.remove("show");
+  startFocus();
+});
+function unlockAudio(){
+  try{ audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === "suspended") audioCtx.resume(); }catch(e){}
+  if ("Notification" in window && Notification.permission === "default") { try{ Notification.requestPermission(); }catch(e){} }
+}
+function startFocus(){
+  unlockAudio();
+  const now = Date.now();
+  pomo = {phase:"focus", cat:pomoPrefs.cat, title:pomoPrefs.title, focus:pomoPrefs.focus, brk:pomoPrefs.brk, log:pomoPrefs.log, startedAt:now, endsAt: now + pomoPrefs.focus*60000};
+  savePomo(); renderAll();
+}
+function chime(times){
+  if (!audioCtx) return;
+  try{
+    const t0 = audioCtx.currentTime;
+    for (let i=0;i<times;i++){
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = "sine"; o.frequency.value = i%2 ? 660 : 880;
+      g.gain.setValueAtTime(0.0001, t0+i*0.35); g.gain.exponentialRampToValueAtTime(0.25, t0+i*0.35+0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0+i*0.35+0.3);
+      o.connect(g).connect(audioCtx.destination); o.start(t0+i*0.35); o.stop(t0+i*0.35+0.32);
+    }
+  }catch(e){}
+}
+async function notify(title, body){
+  chime(3);
+  try{ navigator.vibrate && navigator.vibrate([200,100,200]); }catch(e){}
+  toast(title + "：" + body, 6000);
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  try{
+    const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+    if (reg) reg.showNotification(title, {body, icon:"icon-192.png", tag:"wkplan-pomo", renotify:true});
+    else new Notification(title, {body, icon:"icon-192.png"});
+  }catch(e){}
+}
+function logFocus(startMs, endMs){
+  if (!pomo.log) return;
+  const st = toLogical(new Date(startMs));
+  const len = Math.round((endMs - startMs)/60000);
+  if (len < 5) return;
+  const wk = satOf(st.day), d = dayDiff(st.day, wk);
+  const ev = {id:uid(), d, s:st.m, len, title: pomo.title || catName(pomo.cat), cat:pomo.cat, plan:false, done:false, note:"番茄钟"};
+  const S=settings.start*60, E=settings.end*60;
+  if (ev.s < S || ev.s + ev.len > E) { ev.s = clamp(ev.s, S, E-ev.len); }
+  if (wk.getTime() === weekStart.getTime()) { events.push(ev); changed(); }
+  else readWeek(weekKey(wk)).then(list => { if (list) writeWeek(weekKey(wk), list.concat(ev)); });
+}
+function pomoTick(){
+  if (!pomo) return;
+  const now = Date.now();
+  if (pomo.phase === "focus" && now >= pomo.endsAt){
+    logFocus(pomo.startedAt, pomo.endsAt);
+    const late = now - pomo.endsAt > 60000;
+    pomo.phase = "break"; pomo.startedAt = pomo.endsAt; pomo.endsAt = pomo.startedAt + pomo.brk*60000;
+    if (now < pomo.endsAt) notify("专注结束", `${pomo.title || catName(pomo.cat)} ${pomo.focus} 分钟完成${late?"（已补记）":""}，休息 ${pomo.brk} 分钟`);
+    savePomo();
+  }
+  if (pomo.phase === "break" && now >= pomo.endsAt){
+    pomo.phase = "ready"; savePomo();
+    notify("休息结束", "可以开始下一轮了");
+  }
+  renderPomo();
+}
+function stopPomo(){
+  if (!pomo) return;
+  if (pomo.phase === "focus"){
+    const mins = Math.round((Date.now() - pomo.startedAt)/60000);
+    if (mins >= 5 && pomo.log){
+      ask(`这一轮已经专注了 ${mins} 分钟，要记到时间轴上吗？`, "记上").then(yes=>{ if (yes) logFocus(pomo.startedAt, Date.now()); pomo = null; savePomo(); renderAll(); });
+      return;
+    }
+  }
+  pomo = null; savePomo(); renderAll();
+}
+let lastBandMin = -1;
+function renderPomo(){
+  const box = $("pomoBox");
+  if (!pomo){
+    box.innerHTML = `<button type="button" class="btn" id="pomoStart">番茄钟</button>`;
+    document.title = "周计划时间轴"; return;
+  }
+  const now = Date.now();
+  if (pomo.phase === "ready"){
+    box.innerHTML = `<div class="pomo ${kcls(pomo.cat)}"><span>休息结束</span><button type="button" class="btn" id="pomoNext">下一轮</button><button type="button" class="btn" id="pomoStop" aria-label="关闭番茄钟">✕</button></div>`;
+    document.title = "休息结束 · 周计划"; return;
+  }
+  const left = Math.max(0, pomo.endsAt - now), total = pomo.endsAt - pomo.startedAt;
+  const mm = Math.floor(left/60000), ss = Math.floor(left%60000/1000);
+  const label = pomo.phase === "focus" ? `${esc(pomo.title || catName(pomo.cat))} · 专注` : "休息";
+  box.innerHTML = `<div class="pomo ${kcls(pomo.cat)}${pomo.phase==="break"?" brk":""}" role="timer" aria-label="${label} 剩余 ${mm} 分 ${ss} 秒">
+    <span class="fill" style="width:${(1-left/total)*100}%"></span>
+    <span>${label}</span><b>${pad(mm)}:${pad(ss)}</b>
+    ${pomo.phase==="break" ? `<button type="button" class="btn" id="pomoSkip">跳过休息</button>` : ""}
+    <button type="button" class="btn" id="pomoStop">结束</button></div>`;
+  document.title = `${pad(mm)}:${pad(ss)} ${pomo.phase==="focus"?"专注":"休息"} · 周计划`;
+  // keep the striped "in progress" band on the grid moving each minute
+  const curMin = Math.floor(now/60000);
+  if (pomo.phase === "focus" && curMin !== lastBandMin && !drag && !document.querySelector(".overlay.show")) { lastBandMin = curMin; renderBoard(); }
+}
+$("pomoBox").addEventListener("click", e=>{
+  const id = e.target.closest("button") && e.target.closest("button").id;
+  if (id === "pomoStart") openPomo();
+  else if (id === "pomoStop") stopPomo();
+  else if (id === "pomoNext") { pomoPrefs.cat = pomo.cat; pomoPrefs.title = pomo.title; startFocus(); }
+  else if (id === "pomoSkip") { pomo.phase = "ready"; savePomo(); renderPomo(); }
+});
+
+// ---------- settings ----------
+function presetRow(p){
+  return `<div class="preset-row"><input type="text" maxlength="30" value="${esc(p.title)}" aria-label="预设名称">
+    <input type="number" min="5" max="720" step="5" value="${p.len}" aria-label="分钟">
+    <select aria-label="类别">${[...CAT_ORDER,""].map(c=>`<option value="${c}"${p.cat===c?" selected":""}>${catName(c)}</option>`).join("")}</select>
+    <button type="button" class="btn icon" data-del aria-label="删除这个预设">×</button></div>`;
+}
+function openSettings(){
+  fillSelect($("sStart"), Array.from({length:13},(_,h)=>({v:h,t:pad(h)+":00"})), settings.start);
+  fillSelect($("sEnd"), Array.from({length:13},(_,i)=>{const h=18+i;return {v:h,t:pad(h%24)+":00"+(h>=24?" (次日)":"")};}), settings.end);
+  $("presetRows").innerHTML = settings.presets.map(presetRow).join("");
+  const a = $("acctBox");
+  if (store.mode === "cloud") a.innerHTML = `<span class="lbl">账号</span><div class="row"><span>${esc(store.user.email || "已登录")}</span><div class="spacer"></div>${localWeekKeys().length?`<button type="button" class="btn" id="reMigrate">上传本机旧数据</button>`:""}<button type="button" class="btn" id="signOut">退出登录</button></div>`;
+  else if (store.mode === "local") a.innerHTML = `<span class="lbl">同步</span><p class="hint">现在数据只存在这个浏览器里。按 README 里的步骤接上 Firebase 后，就能在手机、电脑、平板之间同步，这里的数据可以一键上传。</p>`;
+  else a.innerHTML = "";
+  $("setOverlay").classList.add("show");
+}
+$("acctBox").addEventListener("click", e=>{
+  if (e.target.id === "signOut") { $("setOverlay").classList.remove("show"); store.A.signOut(store.auth); }
+  if (e.target.id === "reMigrate") { $("setOverlay").classList.remove("show"); lsSet("migrated:"+store.user.uid, false); offerMigrate(); }
+});
+$("presetRows").addEventListener("click", e=>{ const b = e.target.closest("[data-del]"); if (b) b.parentElement.remove(); });
+$("addPreset").onclick = ()=>{ $("presetRows").insertAdjacentHTML("beforeend", presetRow({title:"",len:60,cat:"study"})); const ins = $("presetRows").querySelectorAll('input[type=text]'); ins[ins.length-1].focus(); };
+$("setCancel").onclick = ()=> $("setOverlay").classList.remove("show");
+$("setOverlay").addEventListener("pointerdown", e=>{ if (e.target === $("setOverlay")) $("setOverlay").classList.remove("show"); });
+$("setForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const st = +$("sStart").value, en = +$("sEnd").value;
+  if (en - st < 8) { toast("时间轴至少要 8 小时"); return; }
+  const presets = [...$("presetRows").children].map(r=>{ const [t,l,c] = r.querySelectorAll("input,select"); return {title:t.value.trim(), len:clamp(parseInt(l.value,10)||60,5,720), cat:c.value}; }).filter(p=>p.title);
+  settings = {start:st, end:en, presets}; armed = null;
+  $("setOverlay").classList.remove("show");
+  saveSettings(); renderAll();
+});
+
+// ---------- sign in ----------
+const authMsg = code => ({
+  "auth/invalid-credential":"邮箱或密码不对", "auth/wrong-password":"密码不对", "auth/user-not-found":"这个邮箱还没注册，点「注册新账号」",
+  "auth/email-already-in-use":"这个邮箱已经注册过，直接登录", "auth/weak-password":"密码至少 6 位", "auth/invalid-email":"邮箱格式不对",
+  "auth/popup-blocked":"弹窗被拦截了，允许弹窗或改用邮箱登录", "auth/popup-closed-by-user":"登录窗口被关掉了",
+  "auth/unauthorized-domain":"Firebase 里还没把这个网址加入授权域名（见 README 第 4 步）", "auth/operation-not-allowed":"Firebase 里还没开启这种登录方式（见 README 第 3 步）",
+  "auth/network-request-failed":"网络连不上"
+}[code] || ("登录失败：" + code));
+$("gLogin").onclick = async ()=>{ $("lErr").textContent = ""; try{ await store.A.signInWithPopup(store.auth, new store.A.GoogleAuthProvider()); }catch(e){ $("lErr").textContent = authMsg(e.code); } };
+$("loginForm").addEventListener("submit", async e=>{ e.preventDefault(); $("lErr").textContent = ""; try{ await store.A.signInWithEmailAndPassword(store.auth, $("lEmail").value.trim(), $("lPass").value); }catch(err){ $("lErr").textContent = authMsg(err.code); } });
+$("lSignup").onclick = async ()=>{ $("lErr").textContent = ""; if (!$("loginForm").reportValidity()) return; try{ await store.A.createUserWithEmailAndPassword(store.auth, $("lEmail").value.trim(), $("lPass").value); }catch(err){ $("lErr").textContent = authMsg(err.code); } };
+
+// ---------- top bar ----------
+function gotoWeek(d){ flushNow(); weekStart = d; loadWeek(); requestAnimationFrame(scrollToNow); }
+$("prevWk").onclick = ()=> gotoWeek(addDays(weekStart,-7));
+$("nextWk").onclick = ()=> gotoWeek(addDays(weekStart,7));
+$("thisWk").onclick = ()=> gotoWeek(satOf(logicalNow().day));
+function keepScroll(fn){ const b=$("board"); const r = b.scrollTop / Math.max(1,b.scrollHeight); fn(); b.scrollTop = r*b.scrollHeight; }
+function zoom(dir){ const i = ZOOMS.indexOf(hh); hh = ZOOMS[clamp((i<0?2:i)+dir, 0, ZOOMS.length-1)]; lsSet("zoom",hh); keepScroll(renderBoard); }
+$("zoomIn").onclick = ()=>zoom(1); $("zoomOut").onclick = ()=>zoom(-1);
+$("openSettings").onclick = openSettings;
+function setMode(m){ mode = m; lsSet("mode", m); renderTop(); }
+$("modeRecord").onclick = ()=>setMode("record");
+$("modePlan").onclick = ()=>setMode("plan");
+$("copyPrev").onclick = async ()=>{
+  const prev = await readWeek(weekKey(addDays(weekStart,-7)));
+  if (prev === null) { toast("读不到上周的数据，检查一下网络"); return; }
+  if (!prev.length) { toast("上周没有内容可复制"); return; }
+  const msg = (events.length ? `这一周已有 ${events.length} 项。` : "") + `把上周的 ${prev.length} 项复制过来吗？复制过来的都会变成「提前安排」（虚线），完成后再打勾。`;
+  if (!(await ask(msg, "复制"))) return;
+  for (const e of prev) events.push({...e, id:uid(), plan:true, done:false});
+  changed(); toast(`已复制 ${prev.length} 项`);
+};
+$("presets").addEventListener("click", e=>{
+  if (e.target.closest("#chipAdd")) {
+    armed = null; const ln = logicalNow(); const today = dayDiff(ln.day, weekStart);
+    openEditor({title:"", cat:"study", d: today>=0&&today<7?today:0, s: Math.max(settings.start*60, Math.ceil(ln.m/30)*30), len:60, note:"", plan: mode==="plan", done:false}, true);
+    renderTop(); return;
+  }
+  const c = e.target.closest("[data-i]"); if (!c) return;
+  const i = +c.dataset.i; armed = (armed === i) ? null : i; renderTop();
+});
+document.addEventListener("keydown", e=>{
+  if (e.key === "Escape"){
+    for (const id of ["askOverlay","evOverlay","pomoOverlay","setOverlay"]) {
+      if ($(id).classList.contains("show")) { if (id==="askOverlay") $("askNo").click(); else if (id==="evOverlay") closeEditor(); else $(id).classList.remove("show"); return; }
+    }
+    if (armed !== null) { armed = null; renderTop(); }
+  }
+  if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("ev")) {
+    e.preventDefault(); const ev = findEv(e.target.dataset.id); if (ev) openEditor(ev,false);
+  }
+});
+
+// ---------- grid: tap empty slot, tick plans, drag / resize ----------
+let drag = null, suppressClick = false;
+const grid = $("grid");
+grid.addEventListener("click", e=>{
+  if (suppressClick) { suppressClick = false; return; }
+  if (e.target.closest(".ev")) return;
+  const col = e.target.closest(".daycol"); if (!col) return;
+  if (store.mode === "signedout") { $("loginOverlay").classList.add("show"); return; }
+  const d = +col.dataset.d;
+  const raw = settings.start*60 + (e.clientY - col.getBoundingClientRect().top)/hh*60;
+  if (armed !== null && settings.presets[armed]) {
+    const p = settings.presets[armed];
+    addEvent({d, s: Math.floor(raw/15)*15, len:p.len, title:p.title, cat:p.cat, plan: mode==="plan"});
+    return;
+  }
+  openEditor({title:"", cat:"study", d, s: Math.floor(raw/30)*30, len:60, note:"", plan: mode==="plan", done:false}, true);
+});
+grid.addEventListener("pointerdown", e=>{
+  const el = e.target.closest(".ev"); if (!el) return;
+  if (e.button && e.button !== 0) return;
+  const ev = findEv(el.dataset.id); if (!ev) return;
+  const onCk = !!e.target.closest(".ck"), isResize = e.target.classList.contains("h");
+  drag = {el, ev, x0:e.clientX, y0:e.clientY, s0:ev.s, d0:ev.d, len0:ev.len, d:ev.d, s:ev.s, len:ev.len, onCk,
+          mode: isResize ? "resize" : "move", active:false, touch: e.pointerType !== "mouse", timer:null, moved:false};
+  if (onCk) return;
+  if (isResize) activate(e);
+  else if (drag.touch) drag.timer = setTimeout(()=>{ if (drag && !drag.moved) { activate(e); try{ navigator.vibrate && navigator.vibrate(12); }catch(_){} } }, 320);
+});
+function activate(e){
+  if (!drag) return;
+  drag.active = true; drag.el.classList.add("dragging"); document.body.classList.add("dragging");
+  try{ e && drag.el.setPointerCapture(e.pointerId); }catch(_){}
+}
+window.addEventListener("pointermove", e=>{
+  if (!drag) return;
+  const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+  if (!drag.active){
+    if (Math.hypot(dx,dy) > (drag.touch ? 8 : 4)) {
+      drag.moved = true;
+      if (drag.touch || drag.onCk) { clearTimeout(drag.timer); drag = null; return; }
+      activate(e);
+    } else return;
+  }
+  const S=settings.start*60, E=settings.end*60, dm = Math.round(dy/hh*60/15)*15;
+  const m = drag.el.querySelector(".m");
+  if (drag.mode === "resize"){
+    drag.len = clamp(drag.len0 + dm, 15, E - drag.s0);
+    drag.el.style.height = Math.max(drag.len/60*hh - 2, 14) + "px";
+    if (m) m.textContent = fmt(drag.s0) + "–" + fmt(drag.s0+drag.len);
+  } else {
+    drag.s = clamp(drag.s0 + dm, S, E - drag.len0);
+    for (const c of grid.querySelectorAll(".daycol")){
+      const r = c.getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX < r.right) { drag.d = +c.dataset.d; if (drag.el.parentElement !== c) { c.appendChild(drag.el); drag.el.style.left = "2px"; drag.el.style.width = "calc(100% - 4px)"; } break; }
+    }
+    drag.el.style.top = (minToY(drag.s)+1) + "px";
+    if (m) m.textContent = fmt(drag.s) + "–" + fmt(drag.s+drag.len0);
+  }
+});
+function endDrag(e, cancelled){
+  if (!drag) return;
+  clearTimeout(drag.timer);
+  const dr = drag; drag = null;
+  document.body.classList.remove("dragging");
+  if (dr.active){
+    suppressClick = true; setTimeout(()=>suppressClick=false, 60);
+    if (!cancelled){
+      if (dr.mode === "resize" && dr.len !== dr.len0) { dr.ev.len = dr.len; changed(); return; }
+      if (dr.mode === "move" && (dr.s !== dr.s0 || dr.d !== dr.d0)) { dr.ev.s = dr.s; dr.ev.d = dr.d; changed(); return; }
+    }
+    renderBoard(); return;
+  }
+  if (dr.moved || cancelled) return;
+  suppressClick = true; setTimeout(()=>suppressClick=false, 60);
+  if (dr.onCk) { dr.ev.done = !dr.ev.done; changed(); if (dr.ev.done) toast("完成了，已变成实线"); return; }
+  openEditor(dr.ev, false);
+}
+window.addEventListener("pointerup", e=>endDrag(e,false));
+window.addEventListener("pointercancel", e=>endDrag(e,true));
+document.addEventListener("touchmove", e=>{ if (drag && drag.active) e.preventDefault(); }, {passive:false});
+grid.addEventListener("contextmenu", e=>{ if (e.target.closest(".ev")) e.preventDefault(); });
+
+// ---------- boot ----------
+const z = lsGet("zoom"); if (ZOOMS.includes(z)) hh = z; else if (innerWidth < 520) hh = 44;
+const md = lsGet("mode"); if (md === "plan" || md === "record") mode = md;
+weekStart = satOf(logicalNow().day);
+renderAll();
+requestAnimationFrame(scrollToNow);
+initStore();
+setInterval(pomoTick, 1000);
+setInterval(()=>{ if (!drag && !document.querySelector(".overlay.show")) renderBoard(); }, 30000);
+document.addEventListener("visibilitychange", ()=>{ if (!document.hidden) { pomoTick(); if (!drag) renderBoard(); } });
+pomoTick();
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
