@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -90,6 +90,9 @@ button{cursor:pointer}
 .btn-group .btn{border-radius:0;margin-left:-1px}
 .btn-group .btn:first-child{border-radius:8px 0 0 8px;margin-left:0}
 .btn-group .btn:last-child{border-radius:0 8px 8px 0}
+.sz{align-items:center}
+.sz .sz-l{font-size:12px;color:var(--muted);margin-right:5px}
+.sz .btn:nth-child(2){border-radius:8px 0 0 8px;margin-left:0}
 .sync{font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .sync i{width:8px;height:8px;border-radius:50%;background:var(--none);display:inline-block}
 .sync[data-s="ok"] i{background:var(--life)}
@@ -268,8 +271,15 @@ hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
 @media (max-width:520px){
   :root{--axis:42px;--colmin:58px}
   .week-title{font-size:15px}
+  .hide-sm{display:none}
   .ev.short .m{display:none}
   .ev{padding:2px 3px 2px 5px;font-size:11.5px}
+  .top{gap:6px}
+  .top .row{gap:6px}
+  #syncText{display:none}
+  .btn{padding:4px 8px}
+  .btn.icon{min-width:30px;padding:4px 7px}
+  .summary{gap:4px 10px;font-size:11.5px}
   .focus{font-size:10px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -286,11 +296,17 @@ hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
     </div>
     <div class="spacer"></div>
     <span class="sync" id="sync" data-s="loading"><i></i><span id="syncText">载入中…</span></span>
-    <div class="btn-group" role="group" aria-label="缩放">
-      <button class="btn icon" id="zoomOut" aria-label="缩小时间轴">−</button>
-      <button class="btn icon" id="zoomIn" aria-label="放大时间轴">+</button>
+    <div class="btn-group sz" role="group" aria-label="每天的宽度">
+      <span class="sz-l" aria-hidden="true">宽</span>
+      <button class="btn icon" id="widthOut" aria-label="每天窄一点">−</button>
+      <button class="btn icon" id="widthIn" aria-label="每天宽一点">+</button>
     </div>
-    <button class="btn" id="copyPrev" title="把上周的安排复制到这一周">复制上周</button>
+    <div class="btn-group sz" role="group" aria-label="每小时的高度">
+      <span class="sz-l" aria-hidden="true">高</span>
+      <button class="btn icon" id="zoomOut" aria-label="每小时矮一点">−</button>
+      <button class="btn icon" id="zoomIn" aria-label="每小时高一点">+</button>
+    </div>
+    <button class="btn" id="copyPrev" title="把上周的安排复制到这一周">复制<span class="hide-sm">上周</span></button>
     <button class="btn icon" id="openSettings" aria-label="设置">⚙</button>
   </div>
   <div class="row" style="flex-wrap:nowrap">
@@ -1090,6 +1106,16 @@ $("thisWk").onclick = ()=> gotoWeek(satOf(logicalNow().day));
 function keepScroll(fn){ const b=$("board"); const r = b.scrollTop / Math.max(1,b.scrollHeight); fn(); b.scrollTop = r*b.scrollHeight; }
 function zoom(dir){ const i = ZOOMS.indexOf(hh); hh = ZOOMS[clamp((i<0?2:i)+dir, 0, ZOOMS.length-1)]; lsSet("zoom",hh); keepScroll(renderBoard); }
 $("zoomIn").onclick = ()=>zoom(1); $("zoomOut").onclick = ()=>zoom(-1);
+// day-column width: wider than the screen simply scrolls sideways (the time axis stays pinned)
+const WIDTHS = [56,64,80,100,130,170,220];
+let cw = 64;
+function applyWidth(){ document.documentElement.style.setProperty("--colmin", cw+"px"); $("widthOut").disabled = cw===WIDTHS[0]; $("widthIn").disabled = cw===WIDTHS[WIDTHS.length-1]; }
+function widen(dir){
+  const b = $("board"), mid = (b.scrollLeft + b.clientWidth/2) / Math.max(1, b.scrollWidth);
+  const i = WIDTHS.indexOf(cw); cw = WIDTHS[clamp((i<0?1:i)+dir, 0, WIDTHS.length-1)]; lsSet("colw", cw); applyWidth();
+  b.scrollLeft = mid * b.scrollWidth - b.clientWidth/2;
+}
+$("widthIn").onclick = ()=>widen(1); $("widthOut").onclick = ()=>widen(-1);
 $("openSettings").onclick = openSettings;
 function setMode(m){ mode = m; lsSet("mode", m); renderTop(); }
 $("modeRecord").onclick = ()=>setMode("record");
@@ -1421,6 +1447,7 @@ $("statNext").onclick = ()=>{ statAnchor = statMode === "week" ? addDays(statAnc
 
 // ---------- boot ----------
 const z = lsGet("zoom"); if (ZOOMS.includes(z)) hh = z; else if (innerWidth < 520) hh = 44;
+const zw = lsGet("colw"); cw = WIDTHS.includes(zw) ? zw : (innerWidth < 520 ? 100 : 64); applyWidth();
 const md = lsGet("mode"); if (md === "plan" || md === "record") mode = md;
 weekStart = satOf(logicalNow().day);
 renderAll();
