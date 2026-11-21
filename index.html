@@ -199,6 +199,35 @@ body.dragging{cursor:grabbing;user-select:none;-webkit-user-select:none}
 hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
 .toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--sheet);padding:9px 14px;border-radius:8px;font-size:13px;z-index:60;display:none;max-width:90vw}
 .toast.show{display:block}
+
+/* ---------- to-do: day-header rows + drawer ---------- */
+.tdl{display:flex;flex-direction:column;gap:2px;margin-top:2px}
+.td{display:flex;align-items:center;gap:5px;border:0;background:transparent;padding:1px 0;font-size:11.5px;text-align:left;color:var(--ink);min-width:0;width:100%}
+.td .bx{flex:none;width:12px;height:12px;border-radius:3px;border:1.5px solid var(--cc);display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;line-height:1}
+.td.done .bx{background:var(--cc)}
+.td .tx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.td.done .tx{text-decoration:line-through;color:var(--muted)}
+.td.more{color:var(--accent);font-size:11px}
+.badge{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--accent);color:#fff;font-size:11px;line-height:18px;text-align:center;margin-left:4px;font-family:var(--font-mono)}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(380px,100%);background:var(--sheet);box-shadow:var(--shadow);z-index:45;transform:translateX(105%);transition:transform .18s ease;display:flex;flex-direction:column;padding:calc(14px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom));gap:12px}
+.drawer.open{transform:none}
+.drawer h2{margin:0;font-size:16px}
+.td-add{display:grid;grid-template-columns:1fr auto;gap:6px}
+.td-add input,.td-add select{border:1px solid var(--rule-strong);background:var(--paper);border-radius:8px;padding:7px 9px;min-width:0;width:100%}
+.td-add .opts{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.td-list{flex:1;overflow:auto;display:flex;flex-direction:column;gap:12px;margin:0 -4px;padding:0 4px}
+.td-sec h3{margin:0 0 6px;font-size:12px;color:var(--muted);font-weight:500;display:flex;align-items:center;gap:8px}
+.td-row{display:grid;grid-template-columns:22px 1fr auto;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid var(--rule)}
+.td-row .bx{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--cc);background:var(--sheet);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;padding:0}
+.td-row.done .bx{background:var(--cc)}
+.td-row .tt{border:0;background:transparent;text-align:left;padding:0;min-width:0;overflow-wrap:anywhere}
+.td-row.done .tt{text-decoration:line-through;color:var(--muted)}
+.td-row .dt{font-family:var(--font-mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.td-row .dt.late{color:var(--relax)}
+@media (max-width:520px){
+  .drawer{top:auto;height:82%;width:100%;border-radius:16px 16px 0 0;transform:translateY(105%)}
+  .drawer.open{transform:none}
+}
 @media (max-width:520px){
   :root{--axis:42px;--colmin:58px}
   .week-title{font-size:15px}
@@ -238,9 +267,45 @@ hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
     <div class="summary" id="summary"></div>
     <span class="banner" id="banner" hidden></span>
     <div class="spacer"></div>
+    <button class="btn" id="todoBtn" type="button">待办<span class="badge" id="todoCount" hidden></span></button>
     <div id="pomoBox"></div>
   </div>
 </header>
+
+<!-- to-do drawer -->
+<aside class="drawer" id="todoDrawer" aria-label="待办清单">
+  <div class="row"><h2>待办</h2><div class="spacer"></div><button type="button" class="btn icon" id="todoClose" aria-label="关闭待办">✕</button></div>
+  <form class="td-add" id="todoAdd" autocomplete="off">
+    <input type="text" id="tdTitle" maxlength="80" placeholder="要做什么？回车添加" aria-label="待办内容">
+    <button type="submit" class="btn primary">添加</button>
+    <div class="opts">
+      <select id="tdDate" aria-label="哪天做"></select>
+      <select id="tdCat" aria-label="类别"></select>
+    </div>
+  </form>
+  <div class="td-list" id="todoList"></div>
+</aside>
+
+<!-- to-do editor -->
+<div class="overlay" id="tdOverlay">
+  <form class="modal" id="tdForm" autocomplete="off">
+    <h2>编辑待办</h2>
+    <div class="field"><label for="teTitle">内容</label><input type="text" id="teTitle" maxlength="80"></div>
+    <div class="two">
+      <div class="field"><label for="teDate">哪天做</label><input type="date" id="teDate"></div>
+      <div class="field"><label for="teCat">类别</label><select id="teCat"></select></div>
+    </div>
+    <p class="hint">日期留空就是「没定哪天」。定了日期的会显示在那天的表头里。</p>
+    <div class="field"><label for="teNote">备注</label><textarea id="teNote" maxlength="500" placeholder="可选"></textarea></div>
+    <div class="actions">
+      <button type="button" class="btn danger" id="teDelete">删除</button>
+      <button type="button" class="btn" id="teSchedule" title="变成一条提前安排，放到那天的时间轴上">排进时间轴</button>
+      <div class="spacer"></div>
+      <button type="button" class="btn" id="teCancel">取消</button>
+      <button type="submit" class="btn primary">保存</button>
+    </div>
+  </form>
+</div>
 
 <main class="board" id="board"><div class="grid" id="grid"></div></main>
 
@@ -443,11 +508,13 @@ const store = {mode:"local", fs:null, auth:null, A:null, F:null, user:null, unsu
 
 function wRef(key){ return store.F.doc(store.fs, "users", store.user.uid, "weeks", key); }
 function sRef(){ return store.F.doc(store.fs, "users", store.user.uid, "meta", "settings"); }
+function tRef(){ return store.F.doc(store.fs, "users", store.user.uid, "meta", "todos"); }
 
 async function initStore(){
   if (!firebaseConfig || !firebaseConfig.apiKey) {
     store.mode = "local";
     const s = lsGet("settings"); if (s) settings = sanitizeSettings(s);
+    todos = sanitizeTodos((lsGet("todos")||{}).items); renderTodos();
     setSync("local", "仅存本机");
     loadWeek();
     return;
@@ -471,13 +538,20 @@ async function initStore(){
         store.unsubSet = fsM.onSnapshot(sRef(), snap => {
           if (snap.exists()) { settings = sanitizeSettings(snap.data()); renderAll(); }
         }, () => {});
+        if (store.unsubTodo) store.unsubTodo();
+        store.unsubTodo = fsM.onSnapshot(tRef(), snap => {
+          if (todoT) return;
+          todos = snap.exists() ? sanitizeTodos((snap.data()||{}).items) : [];
+          renderAll(); renderTodos();
+        }, () => {});
         loadWeek();
         if (!lsGet("migrated:"+user.uid) && localWeekKeys().length) offerMigrate();
       } else {
         store.mode = "signedout";
         if (store.unsubWeek) { store.unsubWeek(); store.unsubWeek = null; }
         if (store.unsubSet) { store.unsubSet(); store.unsubSet = null; }
-        events = []; renderAll();
+        if (store.unsubTodo) { store.unsubTodo(); store.unsubTodo = null; }
+        events = []; todos = []; renderAll(); renderTodos();
         setSync("err","未登录");
         $("loginOverlay").classList.add("show");
       }
@@ -506,6 +580,7 @@ function loadWeek(){
       if (pendingT) return;               // a local edit is about to be written; don't clobber it
       events = snap.exists() ? sanitizeEvents((snap.data()||{}).events) : [];
       renderAll();
+      if (afterLoad && !snap.metadata.fromCache) { const f = afterLoad; afterLoad = null; f(); }
     }, err => {
       clearTimeout(store.loadT);
       setSync("err", err && err.code === "permission-denied" ? "没有权限，检查 Firestore 规则" : "同步中断，刷新页面重试");
@@ -514,7 +589,9 @@ function loadWeek(){
     const v = lsGet(key); events = sanitizeEvents(v && v.events);
   }
   renderAll();
+  if (afterLoad && store.mode === "local") { const f = afterLoad; afterLoad = null; f(); }
 }
+let afterLoad = null;   // runs once the newly shown week has loaded from the server
 
 async function writeWeek(key, list){
   const data = {events: list.map(e=>({...e})), updatedAt: Date.now()};
@@ -638,6 +715,7 @@ function renderBoard(){
       <div class="dn"><b>${DOW[d.getDay()]}</b><span>${d.getMonth()+1}/${d.getDate()}</span></div>
       <div class="bar">${segs}</div>
       <div class="focus">${total ? "备考 "+hours(tt[i].study||0)+"h · 共 "+hours(total)+"h" : "&nbsp;"}</div>
+      ${dayTodosHtml(ymd(d))}
     </div>`;
   }
   html += `<div class="axis" style="height:${H}px">`;
@@ -976,9 +1054,10 @@ $("presets").addEventListener("click", e=>{
 });
 document.addEventListener("keydown", e=>{
   if (e.key === "Escape"){
-    for (const id of ["askOverlay","evOverlay","pomoOverlay","setOverlay"]) {
-      if ($(id).classList.contains("show")) { if (id==="askOverlay") $("askNo").click(); else if (id==="evOverlay") closeEditor(); else $(id).classList.remove("show"); return; }
+    for (const id of ["askOverlay","evOverlay","tdOverlay","pomoOverlay","setOverlay"]) {
+      if ($(id).classList.contains("show")) { if (id==="askOverlay") $("askNo").click(); else if (id==="evOverlay") closeEditor(); else if (id==="tdOverlay") closeTodoEditor(); else $(id).classList.remove("show"); return; }
     }
+    if ($("todoDrawer").classList.contains("open")) { closeTodos(); return; }
     if (armed !== null) { armed = null; renderTop(); }
   }
   if ((e.key === "Enter" || e.key === " ") && e.target.classList && e.target.classList.contains("ev")) {
@@ -1067,6 +1146,124 @@ window.addEventListener("pointerup", e=>endDrag(e,false));
 window.addEventListener("pointercancel", e=>endDrag(e,true));
 document.addEventListener("touchmove", e=>{ if (drag && drag.active) e.preventDefault(); }, {passive:false});
 grid.addEventListener("contextmenu", e=>{ if (e.target.closest(".ev")) e.preventDefault(); });
+
+// ---------- to-do list ----------
+// {id,title,cat,date:"YYYY-MM-DD"|"",done,note,at}; one document per user, synced like everything else
+let todos = [], todoT = null, showDone = false;
+function sanitizeTodos(list){
+  if (!Array.isArray(list)) return [];
+  return list.filter(t => t && typeof t === "object" && t.title).slice(0,500).map(t => ({
+    id:String(t.id||uid()).slice(0,40), title:String(t.title).slice(0,80), cat: CATS[t.cat]?t.cat:"",
+    date: /^\d{4}-\d{2}-\d{2}$/.test(t.date||"") ? t.date : "", done:!!t.done, note:String(t.note||"").slice(0,500), at:+t.at||0
+  }));
+}
+function todosChanged(){
+  const snapshot = todos.map(t=>({...t}));
+  clearTimeout(todoT);
+  todoT = setTimeout(()=>{
+    todoT = null;
+    if (store.mode === "cloud") store.F.setDoc(tRef(), {items:snapshot, updatedAt:Date.now()}).catch(()=>toast("待办没保存上，检查网络"));
+    else if (store.mode === "local") lsSet("todos", {items:snapshot});
+  }, 400);
+  renderAll(); renderTodos();
+}
+const fmtDay = s => { const [y,m,d] = s.split("-").map(Number); const dt = new Date(y,m-1,d); return `${m}/${d} ${DOW[dt.getDay()]}`; };
+function dayTodosHtml(dateStr){
+  const list = todos.filter(t=>t.date===dateStr).sort((a,b)=>a.done-b.done || a.at-b.at);
+  if (!list.length) return "";
+  const shown = list.slice(0,3), more = list.length - shown.length;
+  return `<div class="tdl">${shown.map(t=>`<button type="button" class="td ${kcls(t.cat)}${t.done?" done":""}" data-tid="${t.id}" title="${esc(t.title)}"><span class="bx">${t.done?"✓":""}</span><span class="tx">${esc(t.title)}</span></button>`).join("")}${more>0?`<button type="button" class="td more" data-tmore="1">还有 ${more} 项…</button>`:""}</div>`;
+}
+function todoDateOptions(sel, val){
+  const ln = logicalNow(), opts = [{v:"",t:"没定哪天"}];
+  for (let i=0;i<14;i++){ const d = addDays(ln.day,i); opts.push({v:ymd(d), t:(i===0?"今天 ":i===1?"明天 ":"")+fmtDay(ymd(d))}); }
+  if (val && !opts.some(o=>o.v===val)) opts.push({v:val,t:fmtDay(val)});
+  fillSelect(sel, opts, val);
+}
+function catOptions(sel, val){ fillSelect(sel, [{v:"",t:"不分类"}, ...CAT_ORDER.map(c=>({v:c,t:CATS[c]}))], val); }
+function renderTodos(){
+  const open = todos.filter(t=>!t.done);
+  const c = $("todoCount"); c.textContent = open.length; c.hidden = !open.length;
+  if (!$("todoDrawer").classList.contains("open")) return;
+  const today = ymd(logicalNow().day);
+  const row = t => `<div class="td-row ${kcls(t.cat)}${t.done?" done":""}">
+      <button type="button" class="bx" data-tck="${t.id}" aria-label="${t.done?"标记为未完成":"标记为完成"}：${esc(t.title)}">${t.done?"✓":""}</button>
+      <button type="button" class="tt" data-tedit="${t.id}">${esc(t.title)}</button>
+      <span class="dt${t.date && t.date<today && !t.done ? " late":""}">${t.date ? fmtDay(t.date) : (t.cat? catName(t.cat):"")}</span></div>`;
+  const undated = open.filter(t=>!t.date).sort((a,b)=>a.at-b.at);
+  const dated = open.filter(t=>t.date).sort((a,b)=>a.date.localeCompare(b.date) || a.at-b.at);
+  const done = todos.filter(t=>t.done).sort((a,b)=>b.at-a.at);
+  let h = "";
+  if (!todos.length) h = `<p class="hint">还没有待办。在上面输入，回车就能加上；不选日期就放在「没定哪天」里。</p>`;
+  if (dated.length) h += `<section class="td-sec"><h3>定了日期</h3>${dated.map(row).join("")}</section>`;
+  if (undated.length) h += `<section class="td-sec"><h3>没定哪天</h3>${undated.map(row).join("")}</section>`;
+  if (done.length) h += `<section class="td-sec"><h3>已完成 ${done.length}<button type="button" class="btn" id="tdToggleDone" style="padding:1px 8px;font-size:12px">${showDone?"收起":"展开"}</button>${showDone?`<button type="button" class="btn" id="tdClearDone" style="padding:1px 8px;font-size:12px">清空</button>`:""}</h3>${showDone?done.map(row).join(""):""}</section>`;
+  $("todoList").innerHTML = h;
+}
+function openTodos(){
+  todoDateOptions($("tdDate"), $("tdDate").value || "");
+  catOptions($("tdCat"), $("tdCat").value || "");
+  $("todoDrawer").classList.add("open"); renderTodos();
+  if (matchMedia("(pointer:fine)").matches) setTimeout(()=>$("tdTitle").focus(), 50);
+}
+const closeTodos = () => $("todoDrawer").classList.remove("open");
+function toggleTodo(id){ const t = todos.find(x=>x.id===id); if (!t) return; t.done = !t.done; t.at = Date.now(); todosChanged(); }
+$("todoBtn").onclick = ()=> $("todoDrawer").classList.contains("open") ? closeTodos() : openTodos();
+$("todoClose").onclick = closeTodos;
+$("todoAdd").addEventListener("submit", e=>{
+  e.preventDefault();
+  const title = $("tdTitle").value.trim(); if (!title) return;
+  if (store.mode === "signedout") { $("loginOverlay").classList.add("show"); return; }
+  todos.push({id:uid(), title, cat:$("tdCat").value, date:$("tdDate").value, done:false, note:"", at:Date.now()});
+  $("tdTitle").value = ""; todosChanged();
+});
+$("todoList").addEventListener("click", e=>{
+  const ck = e.target.closest("[data-tck]"); if (ck) { toggleTodo(ck.dataset.tck); return; }
+  const ed = e.target.closest("[data-tedit]"); if (ed) { openTodoEditor(ed.dataset.tedit); return; }
+  if (e.target.id === "tdToggleDone") { showDone = !showDone; renderTodos(); return; }
+  if (e.target.id === "tdClearDone") { ask(`清空 ${todos.filter(t=>t.done).length} 条已完成的待办？`, "清空").then(y=>{ if (y) { todos = todos.filter(t=>!t.done); todosChanged(); } }); }
+});
+grid.addEventListener("click", e=>{
+  const b = e.target.closest(".td"); if (!b) return;
+  e.stopPropagation();
+  if (b.dataset.tmore) openTodos(); else toggleTodo(b.dataset.tid);
+}, true);
+let tdEditing = null;
+function openTodoEditor(id){
+  const t = todos.find(x=>x.id===id); if (!t) return;
+  tdEditing = t;
+  $("teTitle").value = t.title; $("teDate").value = t.date; catOptions($("teCat"), t.cat); $("teNote").value = t.note;
+  $("tdOverlay").classList.add("show");
+}
+const closeTodoEditor = () => { $("tdOverlay").classList.remove("show"); tdEditing = null; };
+$("teCancel").onclick = closeTodoEditor;
+$("tdOverlay").addEventListener("pointerdown", e=>{ if (e.target === $("tdOverlay")) closeTodoEditor(); });
+$("tdForm").addEventListener("submit", e=>{
+  e.preventDefault(); if (!tdEditing) return;
+  const title = $("teTitle").value.trim(); if (!title) { toast("内容不能为空"); return; }
+  Object.assign(tdEditing, {title, date:$("teDate").value, cat:$("teCat").value, note:$("teNote").value.trim()});
+  closeTodoEditor(); todosChanged();
+});
+$("teDelete").onclick = ()=>{ if (!tdEditing) return; const id = tdEditing.id; todos = todos.filter(t=>t.id!==id); closeTodoEditor(); todosChanged(); toast("已删除"); };
+$("teSchedule").onclick = ()=>{
+  if (!tdEditing) return;
+  const t = {...tdEditing, title:$("teTitle").value.trim()||tdEditing.title, cat:$("teCat").value, date:$("teDate").value, note:$("teNote").value.trim()};
+  closeTodoEditor(); closeTodos();
+  const ln = logicalNow();
+  const day = t.date ? new Date(...t.date.split("-").map((v,i)=>i===1?+v-1:+v)) : ln.day;
+  const isToday = ymd(day) === ymd(ln.day);
+  const place = () => {
+    const d = dayDiff(day, weekStart);
+    const s = isToday ? Math.max(settings.start*60, Math.ceil(ln.m/30)*30) : Math.max(settings.start*60, 600);
+    const ev = addEvent({d, s, len:60, title:t.title, cat:t.cat, plan:true, note:t.note});
+    todos = todos.filter(x=>x.id!==t.id); todosChanged();
+    toast("已放到时间轴上，拖动或点开调整时间");
+    openEditor(ev, false);
+  };
+  const wk = satOf(day);
+  if (wk.getTime() === weekStart.getTime()) place();
+  else { afterLoad = place; gotoWeek(wk); }
+};
 
 // ---------- boot ----------
 const z = lsGet("zoom"); if (ZOOMS.includes(z)) hh = z; else if (innerWidth < 520) hh = 44;
