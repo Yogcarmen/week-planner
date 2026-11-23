@@ -134,7 +134,8 @@ button{cursor:pointer}
 .pomo.brk{--cc:var(--life);--cbg:var(--life-bg);--cink:var(--life-ink)}
 
 /* ---------- board ---------- */
-.board{flex:1;min-height:0;overflow:auto;position:relative;background:var(--sheet);overscroll-behavior:contain;padding-bottom:env(safe-area-inset-bottom)}
+.main{flex:1;min-height:0;display:flex}
+.board{flex:1;min-width:0;min-height:0;overflow:auto;position:relative;background:var(--sheet);overscroll-behavior:contain;padding-bottom:env(safe-area-inset-bottom)}
 .grid{display:grid;grid-template-columns:var(--axis) repeat(7,minmax(var(--colmin),1fr));min-width:calc(var(--axis) + 7*var(--colmin))}
 .corner{position:sticky;top:0;left:0;z-index:6;background:var(--sheet);border-bottom:1px solid var(--rule-strong);border-right:1px solid var(--rule-strong)}
 .dayhead{position:sticky;top:0;z-index:5;background:var(--sheet);border-bottom:1px solid var(--rule-strong);border-left:1px solid var(--rule);padding:7px 6px 6px;display:flex;flex-direction:column;gap:4px;min-width:0;overflow:hidden}
@@ -234,6 +235,15 @@ hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
 .td-row.done .tt{text-decoration:line-through;color:var(--muted)}
 .td-row .dt{font-family:var(--font-mono);font-size:11px;color:var(--muted);white-space:nowrap}
 .td-row .dt.late{color:var(--now)}
+/* ---------- side list: undated to-dos (wide screens only) ---------- */
+.side{width:232px;flex:none;border-left:1px solid var(--rule-strong);background:var(--sheet);overflow:auto;padding:12px 12px 16px;display:flex;flex-direction:column;gap:8px}
+.side h2{margin:0;font-size:13px;font-weight:500;color:var(--muted)}
+.side-add input{width:100%;border:1px solid var(--rule-strong);background:var(--paper);border-radius:7px;padding:6px 8px;font-size:13px}
+.side .td-row{grid-template-columns:20px 1fr;padding:6px 2px;font-size:13px}
+.side .td-row .bx{width:16px;height:16px;font-size:10px}
+.side .empty{font-size:12px;color:var(--muted);line-height:1.5;margin:0}
+.side[hidden]{display:none}
+@media (max-width:899px){ .side{display:none} }
 /* ---------- time summary ---------- */
 .modal.stat{max-width:720px}
 .stat-label{font-variant-numeric:tabular-nums;min-width:150px;text-align:center}
@@ -392,7 +402,14 @@ hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
   </form>
 </div>
 
-<main class="board" id="board"><div class="grid" id="grid"></div></main>
+<div class="main">
+  <main class="board" id="board"><div class="grid" id="grid"></div></main>
+  <aside class="side" id="sideTodos" aria-labelledby="sideTitle">
+    <h2 id="sideTitle">没定日期的待办</h2>
+    <form class="side-add" id="sideAdd" autocomplete="off"><input type="text" id="sideInput" maxlength="80" placeholder="加一条，回车" aria-label="新的待办"></form>
+    <div id="sideList"></div>
+  </aside>
+</div>
 
 <!-- event editor -->
 <div class="overlay" id="evOverlay">
@@ -1305,7 +1322,15 @@ function todoDateOptions(sel, val){
   fillSelect(sel, opts, val);
 }
 function catOptions(sel, val){ fillSelect(sel, [{v:"",t:"不分类"}, ...CAT_ORDER.map(c=>({v:c,t:CATS[c]}))], val); }
+function renderSide(){
+  const list = todos.filter(t=>!t.done && !t.date).sort((a,b)=>a.at-b.at);
+  $("sideList").innerHTML = list.length ? list.map(t=>`<div class="td-row ${kcls(t.cat)}">
+      <button type="button" class="bx" data-tck="${t.id}" aria-label="标记为完成：${esc(t.title)}"></button>
+      <button type="button" class="tt" data-tedit="${t.id}">${esc(t.title)}</button></div>`).join("")
+    : `<p class="empty">没有未定日期的待办。在上面输入就能加；定了日期的会显示在那天的表头里。</p>`;
+}
 function renderTodos(){
+  renderSide();
   const open = todos.filter(t=>!t.done);
   const c = $("todoCount"); c.textContent = open.length; c.hidden = !open.length;
   if (!$("todoDrawer").classList.contains("open")) return;
@@ -1340,6 +1365,17 @@ $("todoAdd").addEventListener("submit", e=>{
   if (store.mode === "signedout") { $("loginOverlay").classList.add("show"); return; }
   todos.push({id:uid(), title, cat:$("tdCat").value, date:$("tdDate").value, done:false, note:"", at:Date.now()});
   $("tdTitle").value = ""; todosChanged();
+});
+$("sideList").addEventListener("click", e=>{
+  const ck = e.target.closest("[data-tck]"); if (ck) { toggleTodo(ck.dataset.tck); return; }
+  const ed = e.target.closest("[data-tedit]"); if (ed) openTodoEditor(ed.dataset.tedit);
+});
+$("sideAdd").addEventListener("submit", e=>{
+  e.preventDefault();
+  const title = $("sideInput").value.trim(); if (!title) return;
+  if (store.mode === "signedout") { $("loginOverlay").classList.add("show"); return; }
+  todos.push({id:uid(), title, cat:"", date:"", done:false, note:"", at:Date.now()});
+  $("sideInput").value = ""; todosChanged();
 });
 $("todoList").addEventListener("click", e=>{
   const ck = e.target.closest("[data-tck]"); if (ck) { toggleTodo(ck.dataset.tck); return; }
