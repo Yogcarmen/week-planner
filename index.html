@@ -178,6 +178,7 @@ button{cursor:pointer}
 .ev .h::after{content:"";position:absolute;left:50%;bottom:2px;width:16px;margin-left:-8px;height:2px;border-radius:1px;background:currentColor;opacity:0}
 .ev:hover .h::after{opacity:.35}
 @media (pointer:coarse){.ev .h{height:14px}.ev .h::after{opacity:.3}.ev .ck{width:18px;height:18px}}
+.ev.snap-now{box-shadow:0 0 0 2px var(--now),var(--shadow)}
 .ev.dragging{box-shadow:var(--shadow);z-index:10;cursor:grabbing;opacity:.95}
 body.dragging{cursor:grabbing;user-select:none;-webkit-user-select:none}
 
@@ -205,6 +206,7 @@ body.dragging{cursor:grabbing;user-select:none;-webkit-user-select:none}
 .quick{display:flex;gap:6px;flex-wrap:wrap}
 .preset-row{display:grid;grid-template-columns:1fr 66px 100px 30px;gap:6px;align-items:center}
 .preset-row input,.preset-row select{border:1px solid var(--rule-strong);background:var(--paper);border-radius:7px;padding:6px 8px;width:100%;min-width:0}
+.lnk{border:0;background:none;padding:0 2px;color:var(--accent);font-size:12px;text-decoration:underline;text-underline-offset:2px}
 .hint{font-size:12px;color:var(--muted);line-height:1.55;margin:0}
 .err{font-size:13px;color:var(--now);min-height:1em;margin:0}
 hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
@@ -431,8 +433,8 @@ hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
     </div>
     <div class="three">
       <div class="field"><label for="fDay">日期</label><select id="fDay"></select></div>
-      <div class="field"><label for="fStart">开始</label><select id="fStart"></select></div>
-      <div class="field"><label for="fLen">时长</label><select id="fLen"></select></div>
+      <div class="field"><label for="fStart">开始 <button type="button" class="lnk" data-now="start">现在</button></label><select id="fStart"></select></div>
+      <div class="field"><label for="fEnd">结束 <button type="button" class="lnk" data-now="end">现在</button></label><select id="fEnd"></select></div>
     </div>
     <div class="field">
       <label for="fNote">备注</label>
@@ -468,6 +470,7 @@ hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
       <div class="field"><label for="pBreak">休息</label><select id="pBreak"></select></div>
     </div>
     <label class="check"><input type="checkbox" id="pLog" checked> 专注结束后自动记到时间轴上</label>
+    <div class="field"><label for="pMin">中途结束时，专注满多久才记录</label><select id="pMin"></select></div>
     <p class="hint">到点会响一声并弹通知。电脑上切到别的窗口也会提醒；手机锁屏后浏览器会暂停，回到页面时再提醒，并补记这一段。</p>
     <div class="actions"><div class="spacer"></div>
       <button type="button" class="btn" id="pCancel">取消</button>
@@ -483,6 +486,9 @@ hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
     <div class="two">
       <div class="field"><label for="sStart">时间轴从</label><select id="sStart"></select></div>
       <div class="field"><label for="sEnd">到</label><select id="sEnd"></select></div>
+    </div>
+    <div class="field"><label for="sStep">拖动和点选的最小单位</label><select id="sStep"></select>
+      <p class="hint">拖到「现在」那条红线、或别的块的开头结尾附近时，会自动吸过去，不受这个单位限制。</p>
     </div>
     <p class="hint">过了午夜、还没到时间轴起点的时段算作前一天，适合晚睡的日子。</p>
     <div class="field">
@@ -549,7 +555,7 @@ const DEFAULT_PRESETS = [
 const DOW = ["周日","周一","周二","周三","周四","周五","周六"];
 const ZOOMS = [36,44,52,64,80];
 
-let settings = {start:7, end:27, presets: DEFAULT_PRESETS.map(p=>({...p}))};
+let settings = {start:7, end:27, step:5, presets: DEFAULT_PRESETS.map(p=>({...p}))};
 let weekStart = null, events = [], hh = 52, armed = null, editing = null;
 let mode = "record";
 
@@ -589,11 +595,12 @@ function sanitizeEvents(list){
   }));
 }
 function sanitizeSettings(o){
-  const s = {start:7, end:27, presets: DEFAULT_PRESETS.map(p=>({...p}))};
+  const s = {start:7, end:27, step:5, presets: DEFAULT_PRESETS.map(p=>({...p}))};
   if (!o || typeof o !== "object") return s;
   const st = parseInt(o.start,10), en = parseInt(o.end,10);
   if (st>=0 && st<=12) s.start = st;
   if (en>=18 && en<=30 && en >= s.start+8) s.end = en;
+  if ([1,5,10,15].includes(+o.step)) s.step = +o.step;
   if (Array.isArray(o.presets)) s.presets = o.presets.filter(p=>p && p.title).slice(0,40).map(p=>({
     title:String(p.title).slice(0,30), len:clamp(parseInt(p.len,10)||60,5,720), cat: CATS[p.cat]?p.cat:""
   }));
@@ -876,7 +883,25 @@ function scrollToNow(){
 }
 
 // ---------- event CRUD ----------
-function fit(e){ const S=settings.start*60, E=settings.end*60; e.len = clamp(e.len, 5, E-S); e.s = clamp(e.s, S, E - e.len); }
+function fit(e){ const S=settings.start*60, E=settings.end*60; e.len = clamp(e.len, 1, E-S); e.s = clamp(e.s, S, E - e.len); }
+// snap a minute value: magnets first (the now line on today, other blocks' starts/ends that day), else the step grid
+function magnets(d, excludeId){
+  const out = [], ln = logicalNow();
+  if (dayDiff(ln.day, weekStart) === d) out.push({m:ln.m, now:true});
+  for (const e of events) if (e.d === d && e.id !== excludeId) { out.push({m:e.s}); out.push({m:e.s+e.len}); }
+  return out;
+}
+function snapTo(raw, mags){
+  const pxMin = 60/hh;                      // minutes per pixel
+  let best = null;
+  for (const g of mags) {
+    const dist = Math.abs(g.m - raw), th = (g.now ? 14 : 8) * pxMin;   // the now line pulls harder
+    if (dist <= th && (!best || dist - (g.now ? 2*pxMin : 0) < best.dist)) best = {m:g.m, dist, now:!!g.now};
+  }
+  if (best) return best;
+  const st = settings.step || 5;
+  return {m: Math.round(raw/st)*st, dist: 0, now:false, grid:true};
+}
 function addEvent(o){
   const e = {id:uid(), d:o.d, s:o.s, len:o.len, title:o.title||"", cat:CATS[o.cat]?o.cat:"", plan:!!o.plan, done:!!o.done && !!o.plan, note:o.note||""};
   fit(e); events.push(e); changed(); return e;
@@ -902,13 +927,8 @@ function openEditor(ev, isNew){
   $("fTitle").value = ev.title;
   $("fCats").innerHTML = catRadios("cat", ev.cat, true);
   fillSelect($("fDay"), Array.from({length:7},(_,i)=>{const d=addDays(weekStart,i);return {v:i,t:`${DOW[d.getDay()]} ${d.getMonth()+1}/${d.getDate()}`};}), ev.d);
-  const S=settings.start*60, E=settings.end*60, starts=[];
-  for (let m=S;m<E;m+=15) starts.push({v:m, t: fmt(m) + (m>=1440?" (次日)":"")});
-  if (ev.s%15) starts.push({v:ev.s,t:fmt(ev.s)});
-  fillSelect($("fStart"), starts.sort((a,b)=>a.v-b.v), ev.s);
-  const lens=[15,30,45,50,60,75,90,105,120,150,180,210,240,300,360,480];
-  if (!lens.includes(ev.len)) lens.push(ev.len);
-  fillSelect($("fLen"), lens.sort((a,b)=>a-b).map(l=>({v:l,t:fmtLen(l)})), ev.len);
+  fillTimes($("fStart"), ev.s, false);
+  fillTimes($("fEnd"), ev.s + ev.len, true);
   $("fNote").value = ev.note || "";
   $("fDone").checked = !!ev.done;
   $("evDelete").hidden = $("evDup").hidden = isNew;
@@ -917,10 +937,27 @@ function openEditor(ev, isNew){
   $("evOverlay").classList.add("show");
   if (isNew && matchMedia("(pointer:fine)").matches) setTimeout(()=>$("fTitle").focus(), 30);
 }
+// time pickers on a 5-minute list; any other minute (from dragging, "now", a pomodoro) is added as its own option
+function timeOpt(m){ return {v:m, t: fmt(m) + (m>=1440?" (次日)":"")}; }
+function fillTimes(sel, val, isEnd){
+  const S=settings.start*60, E=settings.end*60, opts=[];
+  for (let m = isEnd ? S+5 : S; m <= (isEnd ? E : E-5); m += 5) opts.push(timeOpt(m));
+  if (!opts.some(o=>o.v===val)) opts.push(timeOpt(val));
+  fillSelect(sel, opts.sort((a,b)=>a.v-b.v), val);
+}
+function setTime(sel, m){ if (![...sel.options].some(o=>+o.value===m)) { fillTimes(sel, m, sel.id==="fEnd"); } sel.value = m; }
+document.querySelectorAll("#evForm [data-now]").forEach(b => b.onclick = () => {
+  const ln = logicalNow(), d = dayDiff(ln.day, weekStart);
+  if (d < 0 || d > 6) { toast("今天不在这一周里"); return; }
+  $("fDay").value = d;
+  const S=settings.start*60, E=settings.end*60, now = clamp(ln.m, S, E);
+  if (b.dataset.now === "start") { const len = +$("fEnd").value - +$("fStart").value; setTime($("fStart"), now); setTime($("fEnd"), Math.min(E, now + Math.max(len, 5))); }
+  else { setTime($("fEnd"), now); if (+$("fStart").value >= now) setTime($("fStart"), Math.max(S, now - 30)); }
+});
 function closeEditor(){ $("evOverlay").classList.remove("show"); editing = null; }
 function readForm(){
   const r = document.querySelector('#fCats input:checked');
-  return { title:$("fTitle").value.trim(), cat: r ? r.value : "", d:+$("fDay").value, s:+$("fStart").value, len:+$("fLen").value,
+  return { title:$("fTitle").value.trim(), cat: r ? r.value : "", d:+$("fDay").value, s:+$("fStart").value, len:+$("fEnd").value - +$("fStart").value,
            note:$("fNote").value.trim(), plan: edType==="plan", done: edType==="plan" && $("fDone").checked };
 }
 document.querySelectorAll("#evForm [data-type]").forEach(b=> b.onclick = ()=> setEdType(b.dataset.type));
@@ -929,12 +966,12 @@ $("evQuick").addEventListener("click", e=>{
   const p = settings.presets[+b.dataset.q];
   $("fTitle").value = p.title;
   const r = document.querySelector(`#fCats input[value="${p.cat}"]`); if (r) r.checked = true;
-  const sel = $("fLen"); if (![...sel.options].some(o=>+o.value===p.len)) sel.add(new Option(fmtLen(p.len), p.len));
-  sel.value = p.len;
+  setTime($("fEnd"), Math.min(settings.end*60, +$("fStart").value + p.len));
 });
 $("evForm").addEventListener("submit", e=>{
   e.preventDefault(); if (!editing) return;
   const f = readForm();
+  if (f.len <= 0) { toast("结束时间要晚于开始时间"); return; }
   if (editing.isNew) addEvent(f);
   else { Object.assign(editing.ev, f); fit(editing.ev); changed(); }
   closeEditor();
@@ -959,7 +996,7 @@ let pomo = null;     // {phase:'focus'|'break'|'ready', cat,title,focus,brk,log,
 let audioCtx = null;
 try{ const p = JSON.parse(localStorage.getItem("wkplan:pomo")||"null"); if (p && p.phase) pomo = p; }catch(e){}
 const savePomo = () => { try{ localStorage.setItem("wkplan:pomo", JSON.stringify(pomo)); }catch(e){} };
-let pomoPrefs = {cat:"study", title:"", focus:50, brk:10, log:true};
+let pomoPrefs = {cat:"study", title:"", focus:50, brk:10, log:true, min:1};
 try{ Object.assign(pomoPrefs, JSON.parse(localStorage.getItem("wkplan:pomoPrefs")||"{}")); }catch(e){}
 
 function openPomo(cat, title){
@@ -969,6 +1006,7 @@ function openPomo(cat, title){
   fillSelect($("pFocus"), [25,30,40,45,50,55,60,75,90].map(v=>({v,t:v+" 分钟"})), pomoPrefs.focus);
   fillSelect($("pBreak"), [5,10,15,20,30].map(v=>({v,t:v+" 分钟"})), pomoPrefs.brk);
   $("pLog").checked = pomoPrefs.log;
+  fillSelect($("pMin"), [{v:1,t:"1 分钟（基本都记）"},{v:3,t:"3 分钟"},{v:5,t:"5 分钟"},{v:10,t:"10 分钟"}], pomoPrefs.min || 1);
   $("pomoOverlay").classList.add("show");
 }
 $("pCancel").onclick = ()=> $("pomoOverlay").classList.remove("show");
@@ -976,7 +1014,7 @@ $("pomoOverlay").addEventListener("pointerdown", e=>{ if (e.target === $("pomoOv
 $("pomoForm").addEventListener("submit", e=>{
   e.preventDefault();
   const r = document.querySelector('#pCats input:checked');
-  pomoPrefs = {cat: r ? r.value : "study", title: $("pTitle").value.trim(), focus:+$("pFocus").value, brk:+$("pBreak").value, log:$("pLog").checked};
+  pomoPrefs = {cat: r ? r.value : "study", title: $("pTitle").value.trim(), focus:+$("pFocus").value, brk:+$("pBreak").value, log:$("pLog").checked, min:+$("pMin").value || 1};
   try{ localStorage.setItem("wkplan:pomoPrefs", JSON.stringify(pomoPrefs)); }catch(_){}
   $("pomoOverlay").classList.remove("show");
   startFocus();
@@ -988,7 +1026,7 @@ function unlockAudio(){
 function startFocus(){
   unlockAudio();
   const now = Date.now();
-  pomo = {phase:"focus", cat:pomoPrefs.cat, title:pomoPrefs.title, focus:pomoPrefs.focus, brk:pomoPrefs.brk, log:pomoPrefs.log, startedAt:now, endsAt: now + pomoPrefs.focus*60000};
+  pomo = {phase:"focus", cat:pomoPrefs.cat, title:pomoPrefs.title, focus:pomoPrefs.focus, brk:pomoPrefs.brk, log:pomoPrefs.log, min:pomoPrefs.min || 1, startedAt:now, endsAt: now + pomoPrefs.focus*60000};
   savePomo(); renderAll();
 }
 function chime(times){
@@ -1017,8 +1055,8 @@ async function notify(title, body){
 function logFocus(startMs, endMs){
   if (!pomo.log) return;
   const st = toLogical(new Date(startMs));
-  const len = Math.round((endMs - startMs)/60000);
-  if (len < 5) return;
+  const len = Math.max(1, Math.round((endMs - startMs)/60000));
+  if ((endMs - startMs) < (pomo.min || 1) * 60000 - 1000) return;
   const wk = satOf(st.day), d = dayDiff(st.day, wk);
   const ev = {id:uid(), d, s:st.m, len, title: pomo.title || catName(pomo.cat), cat:pomo.cat, plan:false, done:false, note:"番茄钟"};
   const S=settings.start*60, E=settings.end*60;
@@ -1045,9 +1083,9 @@ function pomoTick(){
 function stopPomo(){
   if (!pomo) return;
   if (pomo.phase === "focus"){
-    const mins = Math.round((Date.now() - pomo.startedAt)/60000);
-    if (mins >= 5 && pomo.log){
-      ask(`这一轮已经专注了 ${mins} 分钟，要记到时间轴上吗？`, "记上").then(yes=>{ if (yes) logFocus(pomo.startedAt, Date.now()); pomo = null; savePomo(); renderAll(); });
+    const ms = Date.now() - pomo.startedAt, mins = Math.max(1, Math.round(ms/60000));
+    if (ms >= (pomo.min || 1) * 60000 - 1000 && pomo.log){
+      ask(`这一轮专注了 ${mins} 分钟，要记到时间轴上吗？`, "记上").then(yes=>{ if (yes) logFocus(pomo.startedAt, Date.now()); pomo = null; savePomo(); renderAll(); });
       return;
     }
   }
@@ -1095,6 +1133,7 @@ function presetRow(p){
 }
 function openSettings(){
   fillSelect($("sStart"), Array.from({length:13},(_,h)=>({v:h,t:pad(h)+":00"})), settings.start);
+  fillSelect($("sStep"), [1,5,10,15].map(v=>({v,t:v+" 分钟"})), settings.step);
   fillSelect($("sEnd"), Array.from({length:13},(_,i)=>{const h=18+i;return {v:h,t:pad(h%24)+":00"+(h>=24?" (次日)":"")};}), settings.end);
   $("presetRows").innerHTML = settings.presets.map(presetRow).join("");
   const a = $("acctBox");
@@ -1116,7 +1155,7 @@ $("setForm").addEventListener("submit", e=>{
   const st = +$("sStart").value, en = +$("sEnd").value;
   if (en - st < 8) { toast("时间轴至少要 8 小时"); return; }
   const presets = [...$("presetRows").children].map(r=>{ const [t,l,c] = r.querySelectorAll("input,select"); return {title:t.value.trim(), len:clamp(parseInt(l.value,10)||60,5,720), cat:c.value}; }).filter(p=>p.title);
-  settings = {start:st, end:en, presets}; armed = null;
+  settings = {start:st, end:en, step:+$("sStep").value || 5, presets}; armed = null;
   $("setOverlay").classList.remove("show");
   saveSettings(); renderAll();
 });
@@ -1216,7 +1255,7 @@ grid.addEventListener("click", e=>{
   const raw = settings.start*60 + (e.clientY - col.getBoundingClientRect().top)/hh*60;
   if (armed !== null && settings.presets[armed]) {
     const p = settings.presets[armed];
-    addEvent({d, s: Math.floor(raw/15)*15, len:p.len, title:p.title, cat:p.cat, plan: mode==="plan"});
+    addEvent({d, s: Math.floor(raw/(settings.step||5))*(settings.step||5), len:p.len, title:p.title, cat:p.cat, plan: mode==="plan"});
     return;
   }
   openEditor({title:"", cat:"study", d, s: Math.floor(raw/30)*30, len:60, note:"", plan: mode==="plan", done:false}, true);
@@ -1247,21 +1286,32 @@ window.addEventListener("pointermove", e=>{
       activate(e);
     } else return;
   }
-  const S=settings.start*60, E=settings.end*60, dm = Math.round(dy/hh*60/15)*15;
+  const S=settings.start*60, E=settings.end*60, dmin = dy/hh*60;
   const m = drag.el.querySelector(".m");
+  let snappedNow = false;
   if (drag.mode === "resize"){
-    drag.len = clamp(drag.len0 + dm, 15, E - drag.s0);
+    const sn = snapTo(drag.s0 + drag.len0 + dmin, magnets(drag.d0, drag.ev.id));
+    snappedNow = sn.now;
+    drag.len = clamp(sn.m - drag.s0, Math.min(5, settings.step||5), E - drag.s0);
     drag.el.style.height = Math.max(drag.len/60*hh - 2, 14) + "px";
     if (m) m.textContent = fmt(drag.s0) + "–" + fmt(drag.s0+drag.len);
   } else {
-    drag.s = clamp(drag.s0 + dm, S, E - drag.len0);
     for (const c of grid.querySelectorAll(".daycol")){
       const r = c.getBoundingClientRect();
       if (e.clientX >= r.left && e.clientX < r.right) { drag.d = +c.dataset.d; if (drag.el.parentElement !== c) { c.appendChild(drag.el); drag.el.style.left = "2px"; drag.el.style.width = "calc(100% - 4px)"; } break; }
     }
+    // try snapping either the top or the bottom edge, whichever lands closer to a magnet
+    const mags = magnets(drag.d, drag.ev.id), rawS = drag.s0 + dmin;
+    const a = snapTo(rawS, mags), b = snapTo(rawS + drag.len0, mags);
+    let ns;
+    if (!a.grid && (b.grid || a.dist <= b.dist)) { ns = a.m; snappedNow = a.now; }
+    else if (!b.grid) { ns = b.m - drag.len0; snappedNow = b.now; }
+    else ns = a.m;
+    drag.s = clamp(ns, S, E - drag.len0);
     drag.el.style.top = (minToY(drag.s)+1) + "px";
     if (m) m.textContent = fmt(drag.s) + "–" + fmt(drag.s+drag.len0);
   }
+  drag.el.classList.toggle("snap-now", snappedNow);
 });
 function endDrag(e, cancelled){
   if (!drag) return;
