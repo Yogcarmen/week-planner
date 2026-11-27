@@ -64,6 +64,24 @@
 .k-life{--cc:var(--life);--cbg:var(--life-bg);--cink:var(--life-ink)}
 .k-relax{--cc:var(--relax);--cbg:var(--relax-bg);--cink:var(--relax-ink)}
 .k-none{--cc:var(--none);--cbg:var(--none-bg);--cink:var(--none-ink)}
+.k-idle{--cc:var(--relax);--cbg:var(--relax-bg);--cink:var(--relax-ink)}
+.cb.k-idle .track i,.col i.k-idle,.legend .k-idle i,.cb.k-idle .nm i,.brk .k-idle .ct i{background:repeating-linear-gradient(135deg,var(--relax) 0 3px,color-mix(in srgb,var(--relax) 25%,transparent) 3px 6px)}
+:root{--wake:#d9901a;--sleep:#5a5fd0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--wake:#f0b23a;--sleep:#8f93ff}}
+:root[data-theme="dark"]{--wake:#f0b23a;--sleep:#8f93ff}
+.ws{display:flex;gap:4px;flex-wrap:wrap}
+.wsb{display:inline-flex;align-items:center;gap:3px;border:1px solid var(--rule);background:transparent;border-radius:6px;padding:0 5px;font-family:var(--font-mono);font-size:10.5px;line-height:17px;color:var(--muted);white-space:nowrap}
+.wsb svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.wsb.w.set{color:var(--wake);border-color:color-mix(in srgb,var(--wake) 45%,transparent)}
+.wsb.s.set{color:var(--sleep);border-color:color-mix(in srgb,var(--sleep) 45%,transparent)}
+.wsb:not(.set){opacity:.7}
+.sleepzone{position:absolute;left:0;right:0;pointer-events:none;background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--sleep) 9%,transparent) 0 5px,transparent 5px 10px);z-index:0}
+.wsline{position:absolute;left:0;right:0;height:0;pointer-events:none;z-index:3;border-top:2px solid var(--c)}
+.wsline span{position:absolute;right:2px;top:-9px;font-family:var(--font-mono);font-size:10px;line-height:1;padding:2px 4px;border-radius:4px;background:var(--c);color:#fff}
+.wsline.w{--c:var(--wake)} .wsline.s{--c:var(--sleep)}
+.sleepline{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.sleepline b{font-family:var(--font-mono);font-weight:500;color:var(--ink)}
+
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
 body{background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:14px;display:flex;flex-direction:column;overflow:hidden}
@@ -253,9 +271,9 @@ hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
 .hero b{font-size:30px;font-family:var(--font-mono);font-weight:500;letter-spacing:-.02em}
 .hero span{color:var(--muted);font-size:12.5px}
 .catbars{display:flex;flex-direction:column;gap:7px}
-.cb{display:grid;grid-template-columns:76px 1fr 104px;align-items:center;gap:10px;font-size:13px}
+.cb{display:grid;grid-template-columns:104px 1fr 104px;align-items:center;gap:10px;font-size:13px}
 .cb .nm{display:flex;align-items:center;gap:6px;white-space:nowrap}
-.cb .nm i{width:8px;height:8px;border-radius:2px;background:var(--cc)}
+.cb .nm i{width:10px;height:10px;flex:none;border-radius:2px;background:var(--cc)}
 .cb .track{height:12px;border-radius:0 4px 4px 0;background:transparent;position:relative}
 .cb .track i{position:absolute;left:0;top:0;bottom:0;border-radius:0 4px 4px 0;background:var(--cc);min-width:2px}
 .cb .v{font-family:var(--font-mono);font-size:12px;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
@@ -282,7 +300,7 @@ hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
 #statBody{display:flex;flex-direction:column;gap:10px}
 .stat h3{margin:14px 0 0;font-size:13px;color:var(--muted);font-weight:500}
 .stat .legend{margin-bottom:12px}
-@media (max-width:520px){ .cb{grid-template-columns:68px 1fr 92px} .cols,.colx{gap:5px} }
+@media (max-width:520px){ .cb{grid-template-columns:96px 1fr 88px} .cols,.colx{gap:5px} }
 @media (max-width:520px){
   .drawer{top:auto;height:82%;width:100%;border-radius:16px 16px 0 0;transform:translateY(105%)}
   .drawer.open{transform:none}
@@ -382,6 +400,20 @@ hr.sep{border:0;border-top:1px solid var(--rule);margin:2px 0;width:100%}
   </div>
 </div>
 <div class="tip" id="tip" role="tooltip" hidden></div>
+
+<!-- wake / sleep -->
+<div class="overlay" id="wsOverlay">
+  <form class="modal" id="wsForm" autocomplete="off">
+    <h2 id="wsTitle">起床和睡觉</h2>
+    <div class="field"><label for="wsWake">起床 <button type="button" class="lnk" data-wsnow="w">现在</button> <button type="button" class="lnk" data-wsclr="w">清除</button></label><select id="wsWake"></select></div>
+    <div class="field"><label for="wsSleep">睡觉 <button type="button" class="lnk" data-wsnow="s">现在</button> <button type="button" class="lnk" data-wsclr="s">清除</button></label><select id="wsSleep"></select></div>
+    <p class="hint">睡觉时间过了午夜也记在这一天（比如 01:30 显示为次日）。统计里，起床到睡觉之间没标的空白会算作休息，还会算出平均睡眠。</p>
+    <div class="actions"><div class="spacer"></div>
+      <button type="button" class="btn" id="wsCancel">取消</button>
+      <button type="submit" class="btn primary">保存</button>
+    </div>
+  </form>
+</div>
 
 <!-- to-do editor -->
 <div class="overlay" id="tdOverlay">
@@ -675,10 +707,21 @@ async function initStore(){
   }
 }
 
+// days: {"0":{w:wakeMinute|null, s:sleepMinute|null}, ...} — minutes on the day's own clock, sleep may run past 24:00
+let days = {};
+function sanitizeDays(o){
+  const out = {};
+  if (!o || typeof o !== "object") return out;
+  for (let i=0;i<7;i++){ const v = o[i] || o[String(i)]; if (!v) continue;
+    const w = Number.isFinite(+v.w) && v.w !== null ? clamp(+v.w, 0, 1800) : null, sl = Number.isFinite(+v.s) && v.s !== null ? clamp(+v.s, 0, 1800) : null;
+    if (w !== null || sl !== null) out[i] = {w, s:sl}; }
+  return out;
+}
+const copyDays = o => JSON.parse(JSON.stringify(o||{}));
 function loadWeek(){
   if (store.unsubWeek) { store.unsubWeek(); store.unsubWeek = null; }
   clearTimeout(store.loadT);
-  events = [];
+  events = []; days = {};
   const key = weekKey(weekStart);
   if (store.mode === "cloud") {
     setSync("saving","同步中…");
@@ -689,7 +732,8 @@ function loadWeek(){
       else if (snap.metadata.hasPendingWrites) setSync("saving","离线，联网后同步");
       if (pendingT) return;               // a local edit is about to be written; don't clobber it
       events = snap.exists() ? sanitizeEvents((snap.data()||{}).events) : [];
-      committed = copyList(events);
+      days = snap.exists() ? sanitizeDays((snap.data()||{}).days) : {};
+      committed = {events: copyList(events), days: copyDays(days)};
       renderAll();
       if (afterLoad && !snap.metadata.fromCache) { const f = afterLoad; afterLoad = null; f(); }
     }, err => {
@@ -697,24 +741,34 @@ function loadWeek(){
       setSync("err", err && err.code === "permission-denied" ? "没有权限，检查 Firestore 规则" : "同步中断，刷新页面重试");
     });
   } else if (store.mode === "local") {
-    const v = lsGet(key); events = sanitizeEvents(v && v.events);
+    const v = lsGet(key); events = sanitizeEvents(v && v.events); days = sanitizeDays(v && v.days);
   }
-  committed = copyList(events);
+  committed = {events: copyList(events), days: copyDays(days)};
   renderAll();
   if (afterLoad && store.mode === "local") { const f = afterLoad; afterLoad = null; f(); }
 }
 let afterLoad = null;   // runs once the newly shown week has loaded from the server
 
-async function writeWeek(key, list){
+async function writeWeek(key, list, dayMap){
+  // merge-write: leaves the other field alone when only events (or only days) are given
   const data = {events: list.map(e=>({...e})), updatedAt: Date.now()};
+  if (dayMap) { data.days = {}; for (let i=0;i<7;i++) data.days[i] = dayMap[i] ? {w:dayMap[i].w ?? null, s:dayMap[i].s ?? null} : {w:null, s:null}; }
   if (store.mode === "cloud") {
-    store.F.setDoc(wRef(key), data).catch(err => {
+    store.F.setDoc(wRef(key), data, {merge:true}).catch(err => {
       setSync("err", err && err.code === "permission-denied" ? "没有权限，检查 Firestore 规则" : "有改动未保存");
       toast("没保存上，检查网络后刷新再试");
     });
   } else if (store.mode === "local") {
-    if (!lsSet(key, data)) toast("浏览器存储已满或不可用，这次改动没保存");
+    const prev = lsGet(key) || {};
+    if (!lsSet(key, {...prev, ...data})) toast("浏览器存储已满或不可用，这次改动没保存");
   }
+}
+async function readWeekFull(key){
+  if (store.mode === "cloud") {
+    try{ const s = await store.F.getDoc(wRef(key)); const d = s.exists() ? (s.data()||{}) : {}; return {events: sanitizeEvents(d.events), days: sanitizeDays(d.days)}; }
+    catch(e){ return null; }
+  }
+  const v = lsGet(key) || {}; return {events: sanitizeEvents(v.events), days: sanitizeDays(v.days)};
 }
 async function readWeek(key){
   if (store.mode === "cloud") {
@@ -730,16 +784,16 @@ function saveSettings(){
 
 let pendingT = null;
 // undo: every change pushes the state from just before it (events of one week, or the to-do list)
-let committed = [], committedTodos = [], undoStack = [];
+let committed = {events:[], days:{}}, committedTodos = [], undoStack = [];
 const copyList = l => l.map(x=>({...x}));
 function pushUndo(u){ undoStack.push(u); if (undoStack.length > 60) undoStack.shift(); $("undoBtn").disabled = false; }
 function changed(opts){
-  const key = weekKey(weekStart), snapshot = events.map(e=>({...e}));
+  const key = weekKey(weekStart), snapshot = events.map(e=>({...e})), daySnap = copyDays(days);
   if (!(opts && opts.noUndo)) pushUndo({type:"week", key, before: committed});
-  committed = copyList(events);
+  committed = {events: copyList(events), days: copyDays(days)};
   clearTimeout(pendingT);
-  pendingT = setTimeout(()=>{ pendingT = null; writeWeek(key, snapshot); }, 400);
-  pendingFlush = () => { clearTimeout(pendingT); pendingT = null; writeWeek(key, snapshot); };
+  pendingT = setTimeout(()=>{ pendingT = null; writeWeek(key, snapshot, daySnap); }, 400);
+  pendingFlush = () => { clearTimeout(pendingT); pendingT = null; writeWeek(key, snapshot, daySnap); };
   renderAll();
 }
 let pendingFlush = null;
@@ -833,6 +887,7 @@ function renderBoard(){
       <div class="dn"><b>${DOW[d.getDay()]}</b><span>${d.getMonth()+1}/${d.getDate()}</span></div>
       <div class="bar">${segs}</div>
       <div class="focus">${total ? "备考 "+hours(tt[i].study||0)+"h · 共 "+hours(total)+"h" : "&nbsp;"}</div>
+      <div class="ws">${wsBtn(i,"w")}${wsBtn(i,"s")}</div>
       ${dayTodosHtml(ymd(d))}
     </div>`;
   }
@@ -866,6 +921,11 @@ function renderBoard(){
         <div class="h" aria-hidden="true"></div></div>`;
     }
     if (band && band.d === i) inner += `<div class="pomoband ${kcls(band.cat)}" style="top:${minToY(band.s)}px;height:${(band.e-band.s)/60*hh}px"></div>`;
+    const dd = days[i];
+    if (dd && dd.w != null && dd.w > S) inner += `<div class="sleepzone" style="top:0;height:${minToY(Math.min(dd.w,E))}px"></div>`;
+    if (dd && dd.s != null && dd.s < E) inner += `<div class="sleepzone" style="top:${minToY(Math.max(dd.s,S))}px;bottom:0"></div>`;
+    if (dd && dd.w != null && dd.w >= S && dd.w <= E) inner += `<div class="wsline w" style="top:${minToY(dd.w)}px"><span>起 ${fmt(dd.w)}</span></div>`;
+    if (dd && dd.s != null && dd.s >= S && dd.s <= E) inner += `<div class="wsline s" style="top:${minToY(dd.s)}px"><span>睡 ${fmt(dd.s)}</span></div>`;
     if (i === todayIdx && ln.m>=S && ln.m<=E) inner += `<div class="nowline" style="top:${minToY(ln.m)}px"></div>`;
     html += `<div class="daycol${i<2?" wk":""}${i===todayIdx?" today":""}" data-d="${i}" style="height:${H}px">${inner}</div>`;
   }
@@ -1187,9 +1247,9 @@ function undo(){
   $("undoBtn").disabled = !undoStack.length;
   if (!u) return;
   if (u.type === "todos") { todos = copyList(u.before); todosChanged({noUndo:true}); toast("已撤销待办的改动"); return; }
-  if (u.key === weekKey(weekStart)) { events = copyList(u.before); changed({noUndo:true}); toast("已撤销"); return; }
+  if (u.key === weekKey(weekStart)) { events = copyList(u.before.events); days = copyDays(u.before.days); changed({noUndo:true}); toast("已撤销"); return; }
   // the change was in another week: put that week back and jump there
-  writeWeek(u.key, u.before);
+  writeWeek(u.key, u.before.events, u.before.days);
   const [y,m,d] = u.key.slice(1).split("-").map(Number);
   gotoWeek(new Date(y, m-1, d)); toast("已撤销（跳到了那一周）");
 }
@@ -1232,6 +1292,7 @@ $("presets").addEventListener("click", e=>{
 document.addEventListener("keydown", e=>{
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z" && !/^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName||""))) { e.preventDefault(); undo(); return; }
   if (e.key === "Escape"){
+    if ($("wsOverlay").classList.contains("show")) { closeWS(); return; }
     for (const id of ["askOverlay","evOverlay","tdOverlay","pomoOverlay","setOverlay","statOverlay"]) {
       if ($(id).classList.contains("show")) { if (id==="askOverlay") $("askNo").click(); else if (id==="evOverlay") closeEditor(); else if (id==="tdOverlay") closeTodoEditor(); else if (id==="statOverlay") closeStats(); else $(id).classList.remove("show"); return; }
     }
@@ -1335,6 +1396,53 @@ window.addEventListener("pointerup", e=>endDrag(e,false));
 window.addEventListener("pointercancel", e=>endDrag(e,true));
 document.addEventListener("touchmove", e=>{ if (drag && drag.active) e.preventDefault(); }, {passive:false});
 grid.addEventListener("contextmenu", e=>{ if (e.target.closest(".ev")) e.preventDefault(); });
+
+// ---------- wake / sleep per day ----------
+const SUN_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>', MOON_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>';
+function wsBtn(i, k){
+  const v = days[i] && days[i][k];
+  const set = v != null;
+  return `<button type="button" class="wsb ${k}${set?" set":""}" data-wsd="${i}" title="${k==="w"?"起床时间":"睡觉时间"}" aria-label="${k==="w"?"起床":"睡觉"} ${set?fmt(v):"未填"}">${k==="w"?SUN_SVG:MOON_SVG}${set?fmt(v):"--:--"}</button>`;
+}
+let wsDay = null;
+const NONE = "";
+function wsOptions(sel, from, to, val){
+  const opts = [{v:NONE, t:"未填"}];
+  for (let m=from; m<=to; m+=5) opts.push(timeOpt(m));
+  if (val != null && !opts.some(o=>o.v===val)) opts.push(timeOpt(val));
+  fillSelect(sel, opts.sort((a,b)=>(a.v===NONE?-1:b.v===NONE?1:a.v-b.v)), val == null ? NONE : val);
+}
+function openWS(i){
+  wsDay = i;
+  const d = addDays(weekStart, i), cur = days[i] || {};
+  $("wsTitle").textContent = `${DOW[d.getDay()]} ${d.getMonth()+1}/${d.getDate()} · 起床和睡觉`;
+  wsOptions($("wsWake"), 240, 1080, cur.w);         // 04:00 – 18:00
+  wsOptions($("wsSleep"), 1080, 1800, cur.s);       // 18:00 – 次日 06:00
+  $("wsOverlay").classList.add("show");
+}
+const closeWS = () => { $("wsOverlay").classList.remove("show"); wsDay = null; };
+$("wsCancel").onclick = closeWS;
+$("wsOverlay").addEventListener("pointerdown", e=>{ if (e.target === $("wsOverlay")) closeWS(); });
+document.querySelectorAll("#wsForm [data-wsnow]").forEach(b => b.onclick = () => {
+  const ln = logicalNow(), d = dayDiff(ln.day, weekStart), sel = b.dataset.wsnow === "w" ? $("wsWake") : $("wsSleep");
+  if (d !== wsDay) { toast("「现在」只能用在今天"); return; }
+  if (![...sel.options].some(o=>o.value===String(ln.m))) sel.add(new Option(timeOpt(ln.m).t, ln.m));
+  sel.value = String(ln.m);
+});
+document.querySelectorAll("#wsForm [data-wsclr]").forEach(b => b.onclick = () => { (b.dataset.wsclr === "w" ? $("wsWake") : $("wsSleep")).value = NONE; });
+$("wsForm").addEventListener("submit", e=>{
+  e.preventDefault(); if (wsDay === null) return;
+  const w = $("wsWake").value === NONE ? null : +$("wsWake").value, sl = $("wsSleep").value === NONE ? null : +$("wsSleep").value;
+  if (w != null && sl != null && sl <= w) { toast("睡觉时间要晚于起床时间"); return; }
+  if (w == null && sl == null) delete days[wsDay]; else days[wsDay] = {w, s:sl};
+  closeWS(); changed();
+});
+grid.addEventListener("click", e=>{
+  const b = e.target.closest(".wsb"); if (!b) return;
+  e.stopPropagation();
+  if (store.mode === "signedout") { $("loginOverlay").classList.add("show"); return; }
+  openWS(+b.dataset.wsd);
+}, true);
 
 // ---------- to-do list ----------
 // {id,title,cat,date:"YYYY-MM-DD"|"",done,note,at}; one document per user, synced like everything else
@@ -1478,10 +1586,19 @@ $("teSchedule").onclick = ()=>{
 // ---------- time summary (week / month) ----------
 // Counts solid blocks only: direct records + completed plans. A block counts on the day column it sits in.
 let statMode = "week", statAnchor = null, statSeq = 0;
-const STAT_CATS = [...CAT_ORDER, "none"];
-async function weekEventsFor(sat){
-  if (sat.getTime() === weekStart.getTime()) return events;
-  return (await readWeek(weekKey(sat))) || null;
+const STAT_CATS = [...CAT_ORDER, "idle", "none"];
+const kclsS = c => c === "idle" ? "k-idle" : kcls(c);
+async function weekDataFor(sat){
+  if (sat.getTime() === weekStart.getTime()) return {events, days};
+  return (await readWeekFull(weekKey(sat))) || null;
+}
+// minutes inside [a,b] covered by at least one counted block (overlaps counted once)
+function coveredMinutes(list, a, b){
+  const iv = list.filter(counts).map(e=>[Math.max(a,e.s), Math.min(b,e.s+e.len)]).filter(x=>x[1]>x[0]).sort((x,y)=>x[0]-y[0]);
+  let tot = 0, cs = -1, ce = -1;
+  for (const [x,y] of iv){ if (x > ce) { if (ce > cs) tot += ce - cs; cs = x; ce = y; } else ce = Math.max(ce, y); }
+  if (ce > cs) tot += ce - cs;
+  return tot;
 }
 function statRange(){
   if (statMode === "week") { const s = satOf(statAnchor); return {start:s, end:addDays(s,6)}; }
@@ -1499,11 +1616,25 @@ async function renderStats(){
   else for (let w = satOf(start); w <= end; w = addDays(w,7)) { const f = w < start ? start : w, t = addDays(w,6) > end ? end : addDays(w,6); buckets.push({from:f, to:t, label:md(f), sub:"–"+md(t)}); }
   buckets.forEach(b => b.mins = {});
   const total = {}, byTitle = {};
-  let missing = 0;
-  for (let w = satOf(start); w <= end; w = addDays(w,7)) {
-    const list = await weekEventsFor(w);
+  let missing = 0, idleDays = 0;
+  const dayInfo = {};   // ymd -> {w, s} for wake/sleep averages and sleep length (needs the day after the range too)
+  for (let w = satOf(start); w <= addDays(end,1); w = addDays(w,7)) {
+    const data = await weekDataFor(w);
     if (seq !== statSeq) return;
-    if (list === null) { missing++; continue; }
+    if (data === null) { if (w <= end) missing++; continue; }
+    const list = data.events;
+    for (let i=0;i<7;i++) if (data.days[i]) dayInfo[ymd(addDays(w,i))] = data.days[i];
+    if (w > end) continue;
+    // unmarked time between waking up and going to sleep counts as rest
+    for (let i=0;i<7;i++){
+      const day = addDays(w,i), dd = data.days[i];
+      if (day < start || day > end || !dd || dd.w == null || dd.s == null || dd.s <= dd.w) continue;
+      const idle = Math.max(0, (dd.s - dd.w) - coveredMinutes(list.filter(e=>e.d===i), dd.w, dd.s));
+      if (!idle) continue;
+      idleDays++;
+      total.idle = (total.idle||0) + idle;
+      const b = buckets.find(b => day >= b.from && day <= b.to); if (b) b.mins.idle = (b.mins.idle||0) + idle;
+    }
     for (const e of list) {
       if (!counts(e)) continue;
       const day = addDays(w, e.d); if (day < start || day > end) continue;
@@ -1515,22 +1646,35 @@ async function renderStats(){
     }
   }
   const sum = STAT_CATS.reduce((a,c)=>a+(total[c]||0),0);
-  const nm = c => c === "none" ? "未定" : CATS[c];
+  const nm = c => c === "none" ? "未定" : c === "idle" ? "空白（算休息）" : CATS[c];
+  // wake / sleep averages over the range
+  const wakes = [], sleeps = [], lens = [];
+  for (let d = start; d <= end; d = addDays(d,1)) {
+    const di = dayInfo[ymd(d)], nx = dayInfo[ymd(addDays(d,1))];
+    if (di && di.w != null) wakes.push(di.w);
+    if (di && di.s != null) { sleeps.push(di.s); if (nx && nx.w != null) { const L = nx.w + 1440 - di.s; if (L > 60 && L < 1080) lens.push(L); } }
+  }
+  const avg = a => a.reduce((x,y)=>x+y,0)/a.length;
+  const sleepLine = (wakes.length || sleeps.length) ? `<div class="sleepline">${wakes.length?`<span>平均起床 <b>${fmt(Math.round(avg(wakes)))}</b></span>`:""}${sleeps.length?`<span>平均入睡 <b>${fmt(Math.round(avg(sleeps)))}</b></span>`:""}${lens.length?`<span>平均睡眠 <b>${hours(avg(lens))}h</b> <small>（${lens.length} 晚）</small></span>`:""}</div>` : "";
   if (!sum) { $("statBody").innerHTML = `<p class="hint">${missing ? "读不到这段时间的数据，检查网络后再试。" : "这段时间还没有实线记录。提前安排要打勾完成后才会算进来。"}</p>`; return; }
   const maxCat = Math.max(...STAT_CATS.map(c=>total[c]||0));
   const shown = STAT_CATS.filter(c => total[c]);
-  let h = `<div class="hero"><b>${hours(sum)}</b><span>小时 · 只算实线（直接记录 + 已完成的提前安排）${missing?` · 有 ${missing} 周没读到`:""}</span></div>`;
-  h += `<div class="catbars">${shown.map(c=>`<div class="cb ${kcls(c)}"><span class="nm"><i></i>${nm(c)}</span><span class="track"><i style="width:${(total[c]/maxCat*100).toFixed(1)}%"></i></span><span class="v">${hours(total[c])}h <small>${Math.round(total[c]/sum*100)}%</small></span></div>`).join("")}</div>`;
+  const restSum = (total.relax||0) + (total.idle||0);
+  let h = `<div class="hero"><b>${hours(sum)}</b><span>小时 · 实线记录${total.idle?` + 起床到睡觉之间没标的空白（${idleDays} 天）`:""}${missing?` · 有 ${missing} 周没读到`:""}</span></div>`;
+  if (total.idle) h += `<p class="hint">休息合计 <b>${hours(restSum)}h</b>（放松 ${hours(total.relax||0)}h + 空白 ${hours(total.idle)}h）。没填起床和睡觉的日子不算空白。</p>`;
+  else h += `<p class="hint">在每天表头填上起床和睡觉时间，中间没标的空白就会算进休息。</p>`;
+  h += sleepLine;
+  h += `<div class="catbars">${shown.map(c=>`<div class="cb ${kclsS(c)}"><span class="nm"><i></i>${nm(c)}</span><span class="track"><i style="width:${(total[c]/maxCat*100).toFixed(1)}%"></i></span><span class="v">${hours(total[c])}h <small>${Math.round(total[c]/sum*100)}%</small></span></div>`).join("")}</div>`;
   // stacked columns
   const maxB = Math.max(60, ...buckets.map(b => STAT_CATS.reduce((a,c)=>a+(b.mins[c]||0),0)));
   const stepH = [1,2,4,5,10,20,25,50].find(s => maxB/60/s <= 4) || 100;
   const topH = Math.ceil(maxB/60/stepH)*stepH;
   let grid = "";
   for (let v = stepH; v <= topH; v += stepH) grid += `<div class="gl" style="bottom:${v/topH*100}%"><span>${v}h</span></div>`;
-  h += `<h3>${statMode==="week"?"每天":"每周"}</h3><div class="legend">${shown.map(c=>`<span class="${kcls(c)}"><i></i>${nm(c)}</span>`).join("")}</div>`;
+  h += `<h3>${statMode==="week"?"每天":"每周"}</h3><div class="legend">${shown.map(c=>`<span class="${kclsS(c)}"><i></i>${nm(c)}</span>`).join("")}</div>`;
   h += `<div class="cols">${grid}${buckets.map((b,i)=>{
       const tot = STAT_CATS.reduce((a,c)=>a+(b.mins[c]||0),0);
-      return `<div class="col" data-b="${i}" tabindex="0" aria-label="${b.label}${b.sub} 共 ${hours(tot)} 小时">${STAT_CATS.filter(c=>b.mins[c]).map(c=>`<i class="${kcls(c)}" style="height:calc(${(b.mins[c]/60/topH*100).toFixed(2)}% - 2px)"></i>`).join("")}</div>`;
+      return `<div class="col" data-b="${i}" tabindex="0" aria-label="${b.label}${b.sub} 共 ${hours(tot)} 小时">${STAT_CATS.filter(c=>b.mins[c]).map(c=>`<i class="${kclsS(c)}" style="height:calc(${(b.mins[c]/60/topH*100).toFixed(2)}% - 2px)"></i>`).join("")}</div>`;
     }).join("")}</div>`;
   h += `<div class="colx">${buckets.map(b=>{ const tot = STAT_CATS.reduce((a,c)=>a+(b.mins[c]||0),0); return `<span><b>${tot?hours(tot):"–"}</b>${b.label}${statMode==="month"?"<br>"+b.sub:""}</span>`; }).join("")}</div>`;
   // breakdown by item within each category (also the table view of the chart)
@@ -1538,7 +1682,7 @@ async function renderStats(){
   for (const c of shown) {
     const items = Object.entries(byTitle).filter(([k])=>k.startsWith(c+"|")).map(([k,v])=>[k.slice(c.length+1), v]).sort((a,b)=>b[1]-a[1]);
     const top = items.slice(0,8), rest = items.slice(8).reduce((a,[,v])=>a+v,0);
-    h += `<tr><th class="${kcls(c)}"><span class="ct"><i></i>${nm(c)}</span></th><th class="n" style="text-align:right">${hours(total[c])}h</th></tr>`;
+    h += `<tr><th class="${kclsS(c)}"><span class="ct"><i></i>${nm(c)}</span></th><th class="n" style="text-align:right">${hours(total[c])}h</th></tr>`;
     h += top.map(([t,v])=>`<tr><td>${esc(t)}</td><td class="n">${hours(v)}h</td></tr>`).join("");
     if (rest) h += `<tr><td>其他 ${items.length-8} 项</td><td class="n">${hours(rest)}h</td></tr>`;
   }
