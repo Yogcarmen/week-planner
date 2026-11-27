@@ -736,6 +736,7 @@ function loadWeek(){
       committed = {events: copyList(events), days: copyDays(days)};
       renderAll();
       if (afterLoad && !snap.metadata.fromCache) { const f = afterLoad; afterLoad = null; f(); }
+      if (quickWS && !snap.metadata.fromCache) recordQuickWS();
     }, err => {
       clearTimeout(store.loadT);
       setSync("err", err && err.code === "permission-denied" ? "没有权限，检查 Firestore 规则" : "同步中断，刷新页面重试");
@@ -746,6 +747,7 @@ function loadWeek(){
   committed = {events: copyList(events), days: copyDays(days)};
   renderAll();
   if (afterLoad && store.mode === "local") { const f = afterLoad; afterLoad = null; f(); }
+  if (quickWS && store.mode === "local") recordQuickWS();
 }
 let afterLoad = null;   // runs once the newly shown week has loaded from the server
 
@@ -1719,6 +1721,21 @@ const z = lsGet("zoom"); if (ZOOMS.includes(z)) hh = z; else if (innerWidth < 52
 const zw = lsGet("colw"); cw = WIDTHS.includes(zw) ? zw : (innerWidth < 520 ? 100 : 64); applyWidth();
 const md = lsGet("mode"); if (md === "plan" || md === "record") mode = md;
 weekStart = satOf(logicalNow().day);
+// home-screen shortcuts open ./#wake or ./#sleep: record "now" for today once this week has loaded
+let quickWS = (location.hash === "#wake" || location.hash === "#sleep") ? location.hash.slice(1) : null;
+function recordQuickWS(){
+  if (!quickWS) return;
+  if (store.mode === "signedout") return;            // after sign-in the week reloads and this runs again
+  const k = quickWS === "wake" ? "w" : "s"; quickWS = null;
+  try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){}
+  const ln = logicalNow(), d = dayDiff(ln.day, weekStart);
+  if (d < 0 || d > 6) return;
+  const cur = days[d] || {w:null, s:null};
+  if (k === "s" && cur.w != null && ln.m <= cur.w) { toast("现在比今天记的起床时间还早，没有记录"); return; }
+  days[d] = {...cur, [k]: ln.m};
+  changed();
+  toast(k === "w" ? `已记起床 ${fmt(ln.m)}，早上好` : `已记睡觉 ${fmt(ln.m)}，晚安`, 4000);
+}
 renderAll();
 requestAnimationFrame(scrollToNow);
 initStore();
@@ -1726,6 +1743,7 @@ setInterval(pomoTick, 1000);
 setInterval(()=>{ if (!drag && !document.querySelector(".overlay.show")) renderBoard(); }, 30000);
 document.addEventListener("visibilitychange", ()=>{ if (!document.hidden) { pomoTick(); if (!drag) renderBoard(); } });
 pomoTick();
+window.addEventListener("hashchange", ()=>{ if (location.hash === "#wake" || location.hash === "#sleep") { quickWS = location.hash.slice(1); const wk = satOf(logicalNow().day); if (wk.getTime() === weekStart.getTime()) recordQuickWS(); else { afterLoad = recordQuickWS; gotoWeek(wk); } } });
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>

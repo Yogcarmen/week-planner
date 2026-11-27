@@ -28,5 +28,31 @@
   "display_override": [
     "fullscreen",
     "standalone"
+  ],
+  "shortcuts": [
+    {
+      "name": "记起床",
+      "short_name": "记起床",
+      "description": "把现在记为今天的起床时间",
+      "url": "./#wake",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "记睡觉",
+      "short_name": "记睡觉",
+      "description": "把现在记为今天的睡觉时间",
+      "url": "./#sleep",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }
