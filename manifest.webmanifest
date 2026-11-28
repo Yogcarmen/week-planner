@@ -37,8 +37,10 @@
       "url": "./#wake",
       "icons": [
         {
-          "src": "icon-192.png",
-          "sizes": "192x192"
+          "src": "wake-192.png",
+          "sizes": "192x192",
+          "type": "image/png",
+          "purpose": "any"
         }
       ]
     },
@@ -49,8 +51,10 @@
       "url": "./#sleep",
       "icons": [
         {
-          "src": "icon-192.png",
-          "sizes": "192x192"
+          "src": "sleep-192.png",
+          "sizes": "192x192",
+          "type": "image/png",
+          "purpose": "any"
         }
       ]
     }
